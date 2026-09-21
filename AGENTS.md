@@ -4,6 +4,13 @@
 
 Make deployments repeatable, auditable and safe across Linux machines.
 
+## MVP architecture baseline
+
+- Scripts owns safe host deployment and systemd lifecycle only; Agent owns host control, Coordinator owns placement, Gateway owns identity and game instances own live simulation.
+- Deployment and draining must respect `Requested -> Reserved -> Prepared -> SourceFrozen -> TargetAccepted -> Committed -> SourceReleased`; never interrupt an in-flight transfer before its defined timeout or recovery handling.
+- MySQL `lease_version` fencing protects character authority; Redis is non-authoritative transient infrastructure and must not be reset by deployment scripts.
+- Release checks and service communication follow the versioned `Protocol` contracts and negotiated capabilities.
+
 ## Rules
 
 - Use strict shell mode and quote paths and variables.

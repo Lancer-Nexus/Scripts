@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './bin'
+      - name: Validate systemd units
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes systemd
+          for unit in systemd/*.service; do
+            systemd-analyze verify "$unit"
+          done

@@ -26,3 +26,8 @@ Make deployments repeatable, auditable and safe across Linux machines.
 ## Verification
 
 Test scripts with shellcheck, a disposable Linux host and failure injection for interrupted uploads, failed health checks, service crashes and rollback.
+
+## Working-model escalation
+
+- If a task requires complex reasoning beyond the current model's reliable scope, ask the user whether switching to a stronger model is desired before continuing.
+- Do not switch models silently or broaden the task because a stronger model may be useful.

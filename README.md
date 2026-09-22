@@ -18,15 +18,19 @@ See [`config/README.md`](config/README.md) for per-project templates and [`docs/
 
 ## Agent systemd unit
 
-`systemd/lancer-nexus-agent.service` runs the existing outbound-only Agent worker as the unprivileged `lancer` user. It creates the persistent sequence directory `/var/lib/lancer-nexus-agent` and the host-local runtime directory `/run/lancer-nexus` used by the LLServer status snapshot. The unit does not start or stop game instances and does not open inbound ports.
+`systemd/lancer-nexus-agent.service` runs the existing outbound-only Agent worker as the unprivileged `lancer` user. It creates the persistent sequence directory `/var/lib/lancer-nexus-agent` and reads the host-local runtime directory `/run/lancer-nexus` used by the LLServer status snapshot. Install `tmpfiles.d/lancer-nexus.conf` before starting services so both units share that directory. The Agent unit does not start or stop game instances and does not open inbound ports.
 
 Install the unit only after placing the published Agent release at `/opt/lancer-nexus/current/agent/` and creating `/etc/lancer-nexus/agent.env` from the example. Then validate and enable it explicitly:
 
 ```bash
 systemd-analyze verify systemd/lancer-nexus-agent.service
+sudo install -o root -g root -m 0644 tmpfiles.d/lancer-nexus.conf /etc/tmpfiles.d/lancer-nexus.conf
+sudo systemd-tmpfiles --create /etc/tmpfiles.d/lancer-nexus.conf
 sudo install -o root -g root -m 0644 systemd/lancer-nexus-agent.service /etc/systemd/system/lancer-nexus-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable lancer-nexus-agent.service
 ```
 
 Starting the unit is intentionally a separate operator action. Certificate files and `agent.env` remain outside the release directory and must be readable by the `lancer` service account without putting private keys or passwords in Git.
+
+`systemd/lancer-nexus-instance@.service` is an operator-managed LLServer template. Enable an instance only after placing `/opt/lancer-nexus/current/client/LLServer`, `/etc/lancer-nexus/instances/<id>.json`, and `/var/lib/lancer-nexus/instances/<id>/` in place. The JSON must set `RuntimeStatusFile` to the shared runtime directory and keep `InstanceEndpoint` private. This unit is not a remote Agent lifecycle implementation; it does not add a public listener or a Gateway relay.

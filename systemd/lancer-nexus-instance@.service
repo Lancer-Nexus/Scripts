@@ -1,0 +1,27 @@
+[Unit]
+Description=Lancer Nexus LibreLancer instance %i
+Documentation=https://github.com/Lancer-Nexus/Client
+Wants=network-online.target
+After=network-online.target lancer-nexus-agent.service
+
+[Service]
+Type=exec
+User=lancer
+Group=lancer
+WorkingDirectory=/var/lib/lancer-nexus/instances/%i
+ExecStart=/opt/lancer-nexus/current/client/LLServer --config /etc/lancer-nexus/instances/%i.json
+EnvironmentFile=-/etc/lancer-nexus/instances/%i.env
+StateDirectory=lancer-nexus-instance-%i
+UMask=0077
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=90s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/lancer-nexus/instances/%i /var/lib/lancer-nexus-instance-%i /run/lancer-nexus
+
+[Install]
+WantedBy=multi-user.target

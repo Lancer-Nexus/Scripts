@@ -1,0 +1,14 @@
+{
+  "ServerName": "Lancer Nexus Liberty",
+  "ServerDescription": "Private Lancer Nexus game instance",
+  "FreelancerPath": "/opt/librelancer/data/freelancer",
+  "LoginUrl": "https://gateway.example.net",
+  "DatabasePath": "/var/lib/lancer-nexus/instances/liberty-01/server.db",
+  "Port": 2300,
+  "MaxPlayers": 200,
+  "ThreadCount": 0,
+  "RuntimeStatusFile": "/run/lancer-nexus/liberty-01.status.json",
+  "InstanceId": "liberty-01",
+  "SystemId": "li01",
+  "InstanceEndpoint": "10.20.0.31:2300"
+}

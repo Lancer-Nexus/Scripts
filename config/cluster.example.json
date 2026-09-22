@@ -1,0 +1,18 @@
+{
+  "Cluster": {
+    "Enabled": false,
+    "NodeId": "liberty-01",
+    "InstanceId": "liberty-01",
+    "GatewayUrl": "https://gateway.example.net",
+    "CoordinatorQuicEndpoint": "quic://10.20.0.20:7443",
+    "ClientCertificatePath": "/etc/lancer-nexus/certs/liberty-01-client.pfx",
+    "ClientCertificatePassword": "",
+    "CoordinatorCaCertificatePath": "/etc/lancer-nexus/certs/cluster-ca.crt",
+    "AgentId": "agent-01",
+    "Systems": ["li01"],
+    "Capabilities": ["cluster_handshake_v1"],
+    "ReconnectInitialDelaySeconds": 1,
+    "ReconnectMaximumDelaySeconds": 30,
+    "HeartbeatIntervalSeconds": 5
+  }
+}

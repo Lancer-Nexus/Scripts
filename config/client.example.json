@@ -1,0 +1,9 @@
+{
+  "Cluster": {
+    "Enabled": false,
+    "GatewayUrl": "https://gateway.example.net",
+    "RequestTimeoutSeconds": 10,
+    "AllowInsecureHttp": false,
+    "RememberEmail": false
+  }
+}

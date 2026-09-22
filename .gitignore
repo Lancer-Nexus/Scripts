@@ -1,0 +1,10 @@
+*.env
+!*.env.example
+!*.example.env
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+secrets/

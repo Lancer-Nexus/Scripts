@@ -1,0 +1,37 @@
+{
+  "note": "Example values only. Replace private addresses and hostnames for the target environment; do not treat this file as a firewall script.",
+  "network": {
+    "public": {
+      "gatewayHost": "gateway.example.net",
+      "gatewayHttps": { "protocol": "tcp", "port": 443 },
+      "playerGameEndpoint": { "host": "gateway.example.net", "protocol": "udp", "port": 2300, "status": "planned-relay-not-implemented" }
+    },
+    "private": {
+      "cidr": "10.20.0.0/24",
+      "gateway": { "bindAddress": "0.0.0.0", "httpsPort": 443 },
+      "coordinator": {
+        "bindAddress": "10.20.0.20",
+        "httpsPort": 8444,
+        "quicAddress": "10.20.0.20",
+        "quicUdpPort": 7443
+      },
+      "agentHost": { "address": "10.20.0.31", "inboundPorts": [] },
+      "gameInstance": { "bindAddress": "10.20.0.31", "gameUdpPort": 2300 },
+      "events": { "inboundPorts": [], "status": "embedded-or-not-yet-deployed" }
+    },
+    "externalInfrastructure": {
+      "mysql": { "address": "10.20.0.40", "protocol": "tcp", "port": 3306, "status": "planned-external-service" },
+      "redis": { "address": "10.20.0.41", "protocol": "tcp", "port": 6379, "status": "planned-external-service" }
+    }
+  },
+  "projects": {
+    "Client": { "inboundPorts": [], "gatewayUrl": "https://gateway.example.net" },
+    "Gateway": { "inbound": ["tcp/443"], "outbound": ["tcp/8444 to Coordinator", "tcp/3306 to MySQL (planned)", "tcp/6379 to Redis (planned)"] },
+    "Coordinator": { "inbound": ["tcp/8444", "udp/7443"], "outbound": ["tcp/3306 to MySQL (planned)"] },
+    "Agent": { "inboundPorts": [], "outbound": ["udp/7443 to Coordinator"] },
+    "Events": { "inboundPorts": [], "outbound": ["tcp/3306 to MySQL (planned)", "tcp/6379 to Redis (planned)"], "status": "no standalone listener defined" },
+    "Cluster": { "inboundPorts": [], "status": "in-process optional integration" },
+    "Protocol": { "inboundPorts": [], "status": "contract library; no sockets" },
+    "Scripts": { "inboundPorts": [], "status": "deployment tooling; no service listener" }
+  }
+}

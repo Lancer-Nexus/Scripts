@@ -8,7 +8,8 @@ This map separates implemented listeners from intended routes. Sample private ad
 |---|---|---|---|---|
 | Client | `gateway.example.net` | HTTPS/TCP 443 | Login, session and API entry | Gateway listener exists; only health and capability routes are implemented |
 | Gateway | Coordinator private address | HTTPS/TCP 8444 | Placement and transfer control | Coordinator HTTP endpoints exist; Gateway client integration is not implemented |
-| Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Authenticate peer and negotiate Protocol capabilities | Coordinator currently accepts one Hello stream, replies, then closes; Agent QUIC client is not implemented |
+| Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Hello negotiation and sequenced AgentHeartbeat requests/acks on one bidirectional stream per message | Implemented in Agent worker and Coordinator; reconnect uses bounded backoff; instance heartbeats and lifecycle commands remain unimplemented |
+| Legacy Agent HTTP client | Coordinator private address | HTTPS/TCP 8444, `POST /internal/v1/agents/heartbeat` | Compatibility HTTP heartbeat endpoint | Implemented and bearer-protected; the current Agent worker uses QUIC |
 | Coordinator | Agent | No inbound route | Future lifecycle commands | Not implemented; Agent should remain outbound-only |
 | Client | Assigned game endpoint | UDP 2300 via `gateway.example.net` | Game packets | Planned only; no Gateway/L4 relay or per-instance mapping exists |
 | Game instance | Its private host interface | UDP 2300 | Private game listener | Deployment example only; do not make it public |
@@ -43,7 +44,7 @@ The login, refresh, character, transfer, group and event routes in the architect
 
 - Gateway binds to `0.0.0.0:443/tcp` in the template; the host firewall should expose it only on the intended public interface and terminate HTTPS with a valid certificate.
 - Coordinator HTTP binds to its private interface on `8444/tcp`; bearer-protected routes still require TLS. Do not bind them publicly.
-- Coordinator QUIC binds to its private interface on `7443/udp` only when mTLS certificate configuration is complete. Client identity is the single DNS SAN that matches `ClusterHello.NodeId`.
-- Agent has no inbound listener in the example. Allow its outbound UDP/7443 path only to the configured Coordinator.
+- Coordinator QUIC binds to its private interface on `7443/udp` only when mTLS certificate configuration is complete. Client identity is the single DNS SAN that matches `ClusterHello.NodeId` and `AgentHeartbeat.NodeId`.
+- Agent has no inbound listener. Allow its outbound UDP/7443 path only to the configured Coordinator; store its monotonic heartbeat sequence in persistent local state.
 - Do not open UDP/2300 publicly until the Gateway game-traffic relay and destination mapping exist.
 - MySQL/Redis are external dependencies; their ports are not opened by these templates or deployment scripts.

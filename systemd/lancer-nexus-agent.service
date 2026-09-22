@@ -1,0 +1,29 @@
+[Unit]
+Description=Lancer Nexus Agent control worker
+Documentation=https://github.com/Lancer-Nexus/Agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=lancer
+Group=lancer
+WorkingDirectory=/opt/lancer-nexus/current/agent
+ExecStart=/opt/lancer-nexus/current/agent/LancerNexus.Agent
+EnvironmentFile=-/etc/lancer-nexus/agent.env
+StateDirectory=lancer-nexus-agent
+RuntimeDirectory=lancer-nexus
+RuntimeDirectoryMode=0750
+UMask=0077
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/lancer-nexus-agent /run/lancer-nexus
+
+[Install]
+WantedBy=multi-user.target

@@ -8,7 +8,7 @@ This map separates implemented listeners from intended routes. Sample private ad
 |---|---|---|---|---|
 | Client | `gateway.example.net` | HTTPS/TCP 443 | Login, session and API entry | Gateway listener exists; only health and capability routes are implemented |
 | Gateway | Coordinator private address | HTTPS/TCP 8444 | Placement and transfer control | Coordinator HTTP endpoints exist; Gateway client integration is not implemented |
-| Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Hello negotiation and sequenced AgentHeartbeat requests/acks on one bidirectional stream per message | Implemented in Agent worker and Coordinator; reconnect uses bounded backoff; instance heartbeats and lifecycle commands remain unimplemented |
+| Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Hello negotiation; sequenced AgentHeartbeat and InstanceHeartbeat request/ack streams | Agent worker currently sends only AgentHeartbeat; Coordinator receives both and ties instance owner to the authenticated Agent certificate; live instance telemetry and lifecycle commands remain unimplemented |
 | Legacy Agent HTTP client | Coordinator private address | HTTPS/TCP 8444, `POST /internal/v1/agents/heartbeat` | Compatibility HTTP heartbeat endpoint | Implemented and bearer-protected; the current Agent worker uses QUIC |
 | Coordinator | Agent | No inbound route | Future lifecycle commands | Not implemented; Agent should remain outbound-only |
 | Client | Assigned game endpoint | UDP 2300 via `gateway.example.net` | Game packets | Planned only; no Gateway/L4 relay or per-instance mapping exists |

@@ -45,3 +45,9 @@ Before enabling an instance, validate the cross-repository settings without sour
 ```
 
 The check compares instance ID, system ID, private endpoint, player limit and runtime-status path. It requires `jq` and exits non-zero on missing, malformed or inconsistent values.
+
+Run the repository-level validation test with:
+
+```bash
+./tests/test-instance-config.sh
+```

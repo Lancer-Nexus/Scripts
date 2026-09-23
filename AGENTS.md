@@ -28,7 +28,7 @@ Make deployments repeatable, auditable and safe across Linux machines.
 
 ## Verification
 
-Test scripts with shellcheck, a disposable Linux host and failure injection for interrupted uploads, failed health checks, service crashes and rollback.
+Test scripts with shellcheck, the repository validation tests, a disposable Linux host and failure injection for interrupted uploads, failed health checks, service crashes and rollback.
 
 ## Working-model escalation
 

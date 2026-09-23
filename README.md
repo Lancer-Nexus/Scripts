@@ -51,3 +51,5 @@ Run the repository-level validation test with:
 ```bash
 ./tests/test-instance-config.sh
 ```
+
+The repository CI runs this test, ShellCheck and structural systemd validation on every push and pull request. CI substitutes placeholder executable paths only for unit parsing; deployment paths are not changed in the committed units.

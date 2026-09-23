@@ -19,6 +19,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes systemd
+          tmp_dir=$(mktemp -d)
+          trap 'rm -rf "$tmp_dir"' EXIT
           for unit in systemd/*.service; do
-            systemd-analyze verify "$unit"
+            # Release paths do not exist in CI; replace only executable paths
+            # so systemd-analyze can validate the unit structure itself.
+            sed \
+              -e 's#/opt/lancer-nexus/current/agent/LancerNexus.Agent#/bin/true#g' \
+              -e 's#/opt/lancer-nexus/current/client/LLServer#/bin/true#g' \
+              -e 's#/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh#/bin/true#g' \
+              "$unit" > "$tmp_dir/$(basename "$unit")"
+            systemd-analyze verify "$tmp_dir/$(basename "$unit")"
           done
+      - name: Validate cross-repository instance configuration
+        run: ./tests/test-instance-config.sh

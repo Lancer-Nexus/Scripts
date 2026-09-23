@@ -6,7 +6,7 @@ These are templates, not production values. Replace `10.20.0.x` with the assigne
 |---|---|---|---|
 | Client | `client.example.json` | None; outbound HTTPS to Gateway | Cluster login settings are illustrative |
 | Gateway | `gateway.env.example` | Public TCP 443 | Kestrel accepts these standard settings; auth/routing keys are planned |
-| Coordinator | `coordinator.env.example` | Private TCP 8444 and optional UDP 7443 | HTTP/state/heartbeat settings are consumed; QUIC accepts Hello, AgentHeartbeat and InstanceHeartbeat streams |
+| Coordinator | `coordinator.env.example`, `../systemd/lancer-nexus-coordinator.service` | Private TCP 8444 and optional UDP 7443 | HTTP/state/heartbeat settings are consumed; QUIC accepts Hello, AgentHeartbeat and InstanceHeartbeat streams |
 | Agent | `agent.env.example`, `../systemd/lancer-nexus-agent.service` | None; outbound QUIC UDP 7443 to Coordinator | .NET worker sends mTLS Hello and sequenced Agent heartbeats; optional instance heartbeat reads the matching LLServer runtime-status file; host lifecycle remains unimplemented |
 | Events | `events.env.example` | None | Template only; no standalone Events listener exists yet |
 | Cluster | `cluster.example.json` | None; in-process integration | Disabled by default; template only |

@@ -28,6 +28,7 @@ jobs:
             # so systemd-analyze can validate the unit structure itself.
             sed \
               -e 's#/opt/lancer-nexus/current/agent/LancerNexus.Agent#/bin/true#g' \
+              -e 's#/opt/lancer-nexus/current/coordinator/LancerNexus.Coordinator#/bin/true#g' \
               -e 's#/opt/lancer-nexus/current/client/LLServer#/bin/true#g' \
               -e 's#/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh#/bin/true#g' \
               -e 's#/opt/lancer-nexus/current/scripts/bin/ln-wait-instance-ready.sh#/bin/true#g' \

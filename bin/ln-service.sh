@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 usage() {
-  echo "Usage: $0 <agent|instance:INSTANCE_ID> {start|stop|restart|status|enable|disable|restart-failed|logs}" >&2
+  echo "Usage: $0 <agent|coordinator|instance:INSTANCE_ID> {start|stop|restart|status|enable|disable|restart-failed|logs}" >&2
 }
 
 service_ref=${1:-}
@@ -16,6 +16,8 @@ fi
 case "$service_ref" in
   agent)
     unit='lancer-nexus-agent.service' ;;
+  coordinator)
+    unit='lancer-nexus-coordinator.service' ;;
   instance:*)
     instance_id=${service_ref#instance:}
     [[ "$instance_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$instance_id" != *..* ]] || {

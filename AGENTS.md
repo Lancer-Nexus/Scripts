@@ -22,6 +22,7 @@ Make deployments repeatable, auditable and safe across Linux machines.
 - Make deployment and rollback steps idempotent.
 - Use an atomic release-directory and `current`-symlink strategy.
 - Run readiness checks after every deployment.
+- Validate instance, LLServer and Agent configuration together before enabling an instance.
 - Keep example topology, bind addresses and ports aligned with `config/topology.example.json` and `docs/route-map.md`; never imply an unimplemented route is live.
 - Ignore real secrets and certificate files in Git while retaining `.example` templates.
 

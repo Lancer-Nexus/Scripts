@@ -34,3 +34,14 @@ sudo systemctl enable lancer-nexus-agent.service
 Starting the unit is intentionally a separate operator action. Certificate files and `agent.env` remain outside the release directory and must be readable by the `lancer` service account without putting private keys or passwords in Git.
 
 `systemd/lancer-nexus-instance@.service` is an operator-managed LLServer template. Enable an instance only after placing `/opt/lancer-nexus/current/client/LLServer`, `/etc/lancer-nexus/instances/<id>.json`, and `/var/lib/lancer-nexus/instances/<id>/` in place. The JSON must set `RuntimeStatusFile` to the shared runtime directory and keep `InstanceEndpoint` private. This unit is not a remote Agent lifecycle implementation; it does not add a public listener or a Gateway relay.
+
+Before enabling an instance, validate the cross-repository settings without sourcing configuration as shell code:
+
+```bash
+./bin/ln-validate-instance-config.sh \
+  --instance-env config/instance.env.example \
+  --llserver-config config/llserver.instance.example.json \
+  --agent-env config/agent.env.example
+```
+
+The check compares instance ID, system ID, private endpoint, player limit and runtime-status path. It requires `jq` and exits non-zero on missing, malformed or inconsistent values.

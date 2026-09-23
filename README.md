@@ -66,6 +66,15 @@ After starting an instance, check its actual runtime readiness with:
 
 The check fails closed for missing, stale, malformed, not-ready or over-capacity status data.
 
+For Coordinator or Gateway readiness, use the HTTPS-only check:
+
+```bash
+./bin/ln-healthcheck-http.sh --url https://10.20.0.20:8444/health/ready --ca /etc/lancer-nexus/certs/cluster-http-ca.crt
+./bin/ln-healthcheck-http.sh --url https://gateway.example.net/health/ready
+```
+
+The check never downgrades to HTTP or disables certificate verification.
+
 Use `bin/ln-service.sh` for the supported service operations. It accepts only the existing Agent unit or an instance template:
 
 ```bash

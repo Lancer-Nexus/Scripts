@@ -53,3 +53,13 @@ Run the repository-level validation test with:
 ```
 
 The repository CI runs this test, ShellCheck and structural systemd validation on every push and pull request. CI substitutes placeholder executable paths only for unit parsing; deployment paths are not changed in the committed units.
+
+After starting an instance, check its actual runtime readiness with:
+
+```bash
+./bin/ln-healthcheck-instance.sh \
+  --status-file /run/lancer-nexus/liberty-01.status.json \
+  --endpoint 10.20.0.31:2300
+```
+
+The check fails closed for missing, stale, malformed, not-ready or over-capacity status data.

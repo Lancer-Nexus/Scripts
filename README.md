@@ -33,7 +33,9 @@ sudo systemctl enable lancer-nexus-agent.service
 
 Starting the unit is intentionally a separate operator action. Certificate files and `agent.env` remain outside the release directory and must be readable by the `lancer` service account without putting private keys or passwords in Git.
 
-`systemd/lancer-nexus-instance@.service` is an operator-managed LLServer template. Enable an instance only after placing `/opt/lancer-nexus/current/client/LLServer`, `/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh`, `/etc/lancer-nexus/instances/<id>.json`, `/etc/lancer-nexus/instances/<id>.env` and `/var/lib/lancer-nexus/instances/<id>/` in place. The unit runs the configuration preflight before every start; the JSON must set `RuntimeStatusFile` to the shared runtime directory and keep `InstanceEndpoint` private. This unit is not a remote Agent lifecycle implementation; it does not add a public listener or a Gateway relay.
+`systemd/lancer-nexus-instance@.service` is an operator-managed LLServer template. Enable an instance only after placing `/opt/lancer-nexus/current/client/LLServer`, `/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh`, `/opt/lancer-nexus/current/scripts/bin/ln-wait-instance-ready.sh`, `/etc/lancer-nexus/instances/<id>.json`, `/etc/lancer-nexus/instances/<id>.env` and `/var/lib/lancer-nexus/instances/<id>/` in place. The unit runs the configuration preflight before every start; the JSON must set `RuntimeStatusFile` to the shared runtime directory and keep `InstanceEndpoint` private. This unit is not a remote Agent lifecycle implementation; it does not add a public listener or a Gateway relay.
+
+After LLServer starts, the unit waits up to 90 seconds for the fresh runtime snapshot to pass `ln-healthcheck-instance.sh`. A server that never becomes ready is stopped by systemd and remains failed for operator diagnosis.
 
 Before enabling an instance, validate the cross-repository settings without sourcing configuration as shell code:
 

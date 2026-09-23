@@ -30,6 +30,7 @@ jobs:
               -e 's#/opt/lancer-nexus/current/agent/LancerNexus.Agent#/bin/true#g' \
               -e 's#/opt/lancer-nexus/current/client/LLServer#/bin/true#g' \
               -e 's#/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh#/bin/true#g' \
+              -e 's#/opt/lancer-nexus/current/scripts/bin/ln-wait-instance-ready.sh#/bin/true#g' \
               "$unit" > "$tmp_dir/$(basename "$unit")"
             systemd-analyze verify "$tmp_dir/$(basename "$unit")"
           done

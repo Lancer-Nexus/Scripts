@@ -6,7 +6,7 @@ This map separates implemented listeners from intended routes. Sample private ad
 
 | Source | Destination | Transport / port | Purpose | State |
 |---|---|---|---|---|
-| Client | `gateway.example.net` | HTTPS/TCP 443 | Login, session and API entry | Gateway listener and placement forwarding exist; login/session routes remain unimplemented |
+| Client | `gateway.example.net` | HTTPS/TCP 443 | Login, session and API entry | Gateway listener, login boundary and placement forwarding exist; refresh/character routes remain unimplemented |
 | Gateway | Coordinator private address | HTTPS/TCP 8444 | Placement and transfer control | Placement forwarding is implemented; transfer control remains unimplemented |
 | Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Hello negotiation; sequenced AgentHeartbeat and optional InstanceHeartbeat request/ack streams | Instance heartbeat requires a fresh LLServer runtime-status file and matching `instance_heartbeat_v1` capability; absent/stale status is reported as not ready; lifecycle commands remain unimplemented |
 | Legacy Agent HTTP client | Coordinator private address | HTTPS/TCP 8444, `POST /internal/v1/agents/heartbeat` | Compatibility HTTP heartbeat endpoint | Implemented and bearer-protected; the current Agent worker uses QUIC |
@@ -30,6 +30,7 @@ The client-game path remains an architecture gap: the cluster design forbids pub
 | Gateway | GET | `/health/live` | Public listener; liveness only |
 | Gateway | GET | `/health/ready` | Public listener; readiness |
 | Gateway | GET | `/api/v1/capabilities` | Public listener |
+| Gateway | POST | `/api/v1/auth/login` | Public listener; requires configured MySQL account store and signing key |
 | Gateway | POST | `/api/v1/placement/request` | Public listener; requires a valid session token and forwards to authenticated Coordinator |
 | Gateway | POST | `/api/v1/placement` | Public compatibility alias; requires a valid session token |
 | Coordinator | GET | `/health/live` | Private service listener |

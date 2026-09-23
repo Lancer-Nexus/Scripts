@@ -28,7 +28,7 @@
   },
   "projects": {
     "Client": { "inboundPorts": [], "gatewayUrl": "https://gateway.example.net" },
-    "Gateway": { "inbound": ["tcp/443"], "outbound": ["tcp/8444 to Coordinator", "tcp/3306 to MySQL (planned)", "tcp/6379 to Redis (planned)"] },
+    "Gateway": { "inbound": ["tcp/443"], "outbound": ["tcp/8444 to Coordinator", "tcp/3306 to MySQL", "tcp/6379 to Redis (planned)"] },
     "Coordinator": { "inbound": ["tcp/8444", "udp/7443 (optional; enable only with mTLS certificates)"], "outbound": ["tcp/3306 to MySQL (planned)"] },
     "Agent": { "nodeId": "node-01", "agentId": "agent-01", "inboundPorts": [], "outbound": ["udp/7443 to Coordinator"] },
     "Events": { "inboundPorts": [], "outbound": ["tcp/3306 to MySQL (planned)", "tcp/6379 to Redis (planned)"], "status": "no standalone listener defined" },

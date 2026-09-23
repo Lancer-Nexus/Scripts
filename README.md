@@ -87,4 +87,4 @@ The wrapper validates instance IDs and does not accept arbitrary unit names or s
 
 `systemd/lancer-nexus-coordinator.service` runs the Coordinator with its private HTTPS/optional QUIC configuration and persistent filesystem registry state. Install `/etc/lancer-nexus/coordinator.env` and the referenced certificates before enabling it; the unit does not install MySQL, Redis or firewall rules.
 
-`systemd/lancer-nexus-gateway.service` runs the current Gateway skeleton on the configured public HTTPS binding. It grants only `CAP_NET_BIND_SERVICE` so the unprivileged `lancer` user can bind port 443. The unit does not imply that planned login, persistence or Coordinator-placement routes are implemented.
+`systemd/lancer-nexus-gateway.service` runs the Gateway on the configured public HTTPS binding. It grants only `CAP_NET_BIND_SERVICE` so the unprivileged `lancer` user can bind port 443. Login, refresh, character reads and Coordinator placement are implemented; transfer, group and event routes remain outside this unit.

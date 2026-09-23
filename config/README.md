@@ -5,7 +5,7 @@ These are templates, not production values. Replace `10.20.0.x` with the assigne
 | Project | Template | Inbound binding in the example | Status |
 |---|---|---|---|
 | Client | `client.example.json` | None; outbound HTTPS to Gateway | Cluster login settings are illustrative |
-| Gateway | `gateway.env.example`, `../systemd/lancer-nexus-gateway.service` | Public TCP 443 | Kestrel accepts these standard settings; auth/routing keys are planned |
+| Gateway | `gateway.env.example`, `../systemd/lancer-nexus-gateway.service` | Public TCP 443 | Kestrel, MySQL identity/session storage, token signing, Coordinator URL/API key and rate limits are consumed |
 | Coordinator | `coordinator.env.example`, `../systemd/lancer-nexus-coordinator.service` | Private TCP 8444 and optional UDP 7443 | HTTP/state/heartbeat settings are consumed; QUIC accepts Hello, AgentHeartbeat and InstanceHeartbeat streams |
 | Agent | `agent.env.example`, `../systemd/lancer-nexus-agent.service` | None; outbound QUIC UDP 7443 to Coordinator | .NET worker sends mTLS Hello and sequenced Agent heartbeats; optional instance heartbeat reads the matching LLServer runtime-status file; host lifecycle remains unimplemented |
 | Events | `events.env.example` | None | Template only; no standalone Events listener exists yet |
@@ -14,7 +14,7 @@ These are templates, not production values. Replace `10.20.0.x` with the assigne
 | Scripts | `hosts.example.env` | None | Deployment configuration; scripts must not open firewall ports implicitly |
 | Game instance | `instance.env.example`, `llserver.instance.example.json`, `../systemd/lancer-nexus-instance@.service` | Private UDP 2300 | Operator-managed LLServer template; LLServer and Agent use the same 200-player limit and runtime-status path; never expose an instance directly to the public Internet |
 
-`ASPNETCORE_URLS` and the standard `Kestrel__Certificates__Default__*` settings are consumed by the current ASP.NET Core hosts. Coordinator registry timeouts, reservation lifetimes, state-file path and QUIC options are also consumed. Agent QUIC endpoint, certificate, CA, heartbeat interval, capabilities, sequence-state and optional instance-status settings are consumed by the worker. Events, Client, Cluster and most Gateway-specific keys document intended configuration contracts only; do not assume they are active until those services implement them.
+`ASPNETCORE_URLS` and the standard `Kestrel__Certificates__Default__*` settings are consumed by the current ASP.NET Core hosts. Gateway MySQL, token, Coordinator and rate-limit settings are consumed by the current Gateway. Coordinator registry timeouts, reservation lifetimes, state-file path and QUIC options are also consumed. Agent QUIC endpoint, certificate, CA, heartbeat interval, capabilities, sequence-state and optional instance-status settings are consumed by the worker. Events, Client, Cluster and remaining planned keys document intended configuration contracts only; do not assume they are active until those services implement them.
 
 Before starting the Agent, create and restrict the parent directory of `Agent__StateFile` for the service account. Resolve `Agent__Coordinator__ServerName` to the configured private Coordinator address and issue the Coordinator certificate for that DNS name.
 

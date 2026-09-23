@@ -33,6 +33,7 @@ The client-game path remains an architecture gap: the cluster design forbids pub
 | Gateway | POST | `/api/v1/auth/login` | Public listener; requires configured MySQL account store and signing key |
 | Gateway | POST | `/api/v1/auth/refresh` | Public listener; rotates a persisted refresh-token hash |
 | Gateway | GET | `/api/v1/me` | Public listener; requires a valid session token; returns non-sensitive session metadata |
+| Gateway | GET | `/api/v1/characters` | Public listener; requires a valid session token; returns that account's characters |
 | Gateway | POST | `/api/v1/placement/request` | Public listener; requires a valid session token and forwards to authenticated Coordinator |
 | Gateway | POST | `/api/v1/placement` | Public compatibility alias; requires a valid session token |
 | Coordinator | GET | `/health/live` | Private service listener |

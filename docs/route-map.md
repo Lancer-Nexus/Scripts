@@ -36,6 +36,7 @@ The client-game path remains an architecture gap: the cluster design forbids pub
 | Gateway | GET | `/api/v1/characters` | Public listener; requires a valid session token; returns that account's characters |
 | Gateway | POST | `/api/v1/placement/request` | Public listener; requires a valid session token and forwards to authenticated Coordinator |
 | Gateway | POST | `/api/v1/placement` | Public compatibility alias; requires a valid session token |
+| Gateway | POST | `/api/v1/game/verify-ticket` | GameServer-facing HTTPS verification of a short-lived placement join ticket |
 | Coordinator | GET | `/health/live` | Private service listener |
 | Coordinator | GET | `/health/ready` | Private service listener |
 | Coordinator | GET | `/api/v1/capabilities` | Private service listener |

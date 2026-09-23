@@ -9,6 +9,7 @@ Type=exec
 User=lancer
 Group=lancer
 WorkingDirectory=/var/lib/lancer-nexus/instances/%i
+ExecStartPre=/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh --instance-env /etc/lancer-nexus/instances/%i.env --llserver-config /etc/lancer-nexus/instances/%i.json --agent-env /etc/lancer-nexus/agent.env
 ExecStart=/opt/lancer-nexus/current/client/LLServer --config /etc/lancer-nexus/instances/%i.json
 EnvironmentFile=-/etc/lancer-nexus/instances/%i.env
 StateDirectory=lancer-nexus-instance-%i

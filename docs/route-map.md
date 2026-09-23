@@ -30,8 +30,8 @@ The client-game path remains an architecture gap: the cluster design forbids pub
 | Gateway | GET | `/health/live` | Public listener; liveness only |
 | Gateway | GET | `/health/ready` | Public listener; readiness |
 | Gateway | GET | `/api/v1/capabilities` | Public listener |
-| Gateway | POST | `/api/v1/placement/request` | Public listener; forwards to authenticated Coordinator |
-| Gateway | POST | `/api/v1/placement` | Public compatibility alias; forwards to authenticated Coordinator |
+| Gateway | POST | `/api/v1/placement/request` | Public listener; requires a valid session token and forwards to authenticated Coordinator |
+| Gateway | POST | `/api/v1/placement` | Public compatibility alias; requires a valid session token |
 | Coordinator | GET | `/health/live` | Private service listener |
 | Coordinator | GET | `/health/ready` | Private service listener |
 | Coordinator | GET | `/api/v1/capabilities` | Private service listener |

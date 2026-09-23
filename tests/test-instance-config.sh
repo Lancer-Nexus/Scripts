@@ -40,4 +40,18 @@ if "$healthcheck" --status-file "$not_ready_status" >/dev/null 2>&1; then
   exit 1
 fi
 
+stale_status="$tmp_dir/stale.json"
+jq '.WrittenAtUtc = "2000-01-01T00:00:00Z"' "$status_file" > "$stale_status"
+if "$healthcheck" --status-file "$stale_status" >/dev/null 2>&1; then
+  echo "healthcheck accepted a stale instance" >&2
+  exit 1
+fi
+
+over_capacity_status="$tmp_dir/over-capacity.json"
+jq '.CurrentPlayers = .MaxPlayers + 1' "$status_file" > "$over_capacity_status"
+if "$healthcheck" --status-file "$over_capacity_status" >/dev/null 2>&1; then
+  echo "healthcheck accepted an over-capacity instance" >&2
+  exit 1
+fi
+
 echo "instance configuration validation tests passed"

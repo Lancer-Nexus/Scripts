@@ -11,6 +11,7 @@ llserver_config="$repo_dir/config/llserver.instance.example.json"
 agent_env="$repo_dir/config/agent.env.example"
 validator="$repo_dir/bin/ln-validate-instance-config.sh"
 healthcheck="$repo_dir/bin/ln-healthcheck-instance.sh"
+http_healthcheck="$repo_dir/bin/ln-healthcheck-http.sh"
 
 "$validator" \
   --instance-env "$instance_env" \
@@ -51,6 +52,11 @@ over_capacity_status="$tmp_dir/over-capacity.json"
 jq '.CurrentPlayers = .MaxPlayers + 1' "$status_file" > "$over_capacity_status"
 if "$healthcheck" --status-file "$over_capacity_status" >/dev/null 2>&1; then
   echo "healthcheck accepted an over-capacity instance" >&2
+  exit 1
+fi
+
+if "$http_healthcheck" --url http://127.0.0.1/health/ready >/dev/null 2>&1; then
+  echo "HTTP healthcheck accepted an insecure URL" >&2
   exit 1
 fi
 

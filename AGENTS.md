@@ -16,6 +16,7 @@ Make deployments repeatable, auditable and safe across Linux machines.
 - Use strict shell mode and quote paths and variables.
 - Validate arguments, artifacts, hashes and target paths before changing anything.
 - Never execute arbitrary network-provided shell commands.
+- Service wrappers must allowlist unit names and actions; never pass arbitrary systemd arguments through.
 - Do not delete production data or reset MySQL/Redis from routine scripts.
 - Use systemd for service lifecycle and support graceful draining.
 - Keep secrets out of Git, command lines and logs.

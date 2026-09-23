@@ -63,3 +63,13 @@ After starting an instance, check its actual runtime readiness with:
 ```
 
 The check fails closed for missing, stale, malformed, not-ready or over-capacity status data.
+
+Use `bin/ln-service.sh` for the supported service operations. It accepts only the existing Agent unit or an instance template:
+
+```bash
+./bin/ln-service.sh agent status
+./bin/ln-service.sh instance:liberty-01 restart
+./bin/ln-service.sh instance:liberty-01 logs
+```
+
+The wrapper validates instance IDs and does not accept arbitrary unit names or shell text. Gateway and Coordinator units are intentionally not exposed until their deployment units exist.

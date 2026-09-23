@@ -74,6 +74,8 @@ Use `bin/ln-service.sh` for the supported service operations. It accepts only th
 ./bin/ln-service.sh instance:liberty-01 logs
 ```
 
-The wrapper validates instance IDs and does not accept arbitrary unit names or shell text. Gateway is intentionally not exposed until its deployment unit exists.
+The wrapper validates instance IDs and does not accept arbitrary unit names or shell text.
 
 `systemd/lancer-nexus-coordinator.service` runs the Coordinator with its private HTTPS/optional QUIC configuration and persistent filesystem registry state. Install `/etc/lancer-nexus/coordinator.env` and the referenced certificates before enabling it; the unit does not install MySQL, Redis or firewall rules.
+
+`systemd/lancer-nexus-gateway.service` runs the current Gateway skeleton on the configured public HTTPS binding. It grants only `CAP_NET_BIND_SERVICE` so the unprivileged `lancer` user can bind port 443. The unit does not imply that planned login, persistence or Coordinator-placement routes are implemented.

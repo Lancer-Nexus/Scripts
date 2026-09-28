@@ -36,3 +36,8 @@ Test scripts with shellcheck, the repository validation tests, a disposable Linu
 
 - If a task requires complex reasoning beyond the current model's reliable scope, ask the user whether switching to a stronger model is desired before continuing.
 - Do not switch models silently or broaden the task because a stronger model may be useful.
+
+## Nexus baseline system groups
+
+The base Nexus topology uses eight game instances, one per group: BR01-BR06 (`br-01`), BW01-BW10 (`bw-01`), EW01-EW05 (`ew-01`), IW01-IW06 (`iw-01`), KU01-KU06 (`ku-01`), LI01-LI05 (`li-01`), RH01-RH05 (`rh-01`), and `mixed-01` for all remaining registered systems. System nicknames are compared case insensitively and emitted lowercase. Folder names are not always world nicknames: `fp7` contains `fp7_system`; `intro` and `miners` are asset directories, not registered worlds.
+Generate the full baseline from the collected Freelancer DATA and universe.ini, assign every registered world exactly once, and include all leftover SYSTEMS directories in Mixed. Keep database files, keys and Agent sequence state outside replaceable build output (`runtime/nexus/<variant>` in the workspace). Collect regenerates configuration and preserves private keys. Never advertise intro/miners as worlds or infer fp7_system from the directory name alone. Each group has its own LLServer config, Agent config, private key, database, status path and UDP port. Prepare does not enable systemd or start services; QUIC requires provisioned mTLS certificates.

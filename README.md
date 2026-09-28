@@ -16,6 +16,8 @@ The scripts are designed for Linux hosts running the current .NET runtime. They 
 
 See [`config/README.md`](config/README.md) for per-project templates and [`docs/route-map.md`](docs/route-map.md) for bind addresses, ports, API routes and implementation status. Example addresses are placeholders; templates do not change firewall rules or open ports.
 
+The eight-group Nexus base configuration, inventory generator, persistent-state layout and component starters are documented in [docs/nexus-baseline.md](docs/nexus-baseline.md). The canonical system allocation is [config/nexus-baseline.json](config/nexus-baseline.json).
+
 ## Agent systemd unit
 
 `systemd/lancer-nexus-agent.service` runs the existing outbound-only Agent worker as the unprivileged `lancer` user. It creates the persistent sequence directory `/var/lib/lancer-nexus-agent` and reads the host-local runtime directory `/run/lancer-nexus` used by the LLServer status snapshot. Install `tmpfiles.d/lancer-nexus.conf` before starting services so both units share that directory. The Agent unit does not start or stop game instances and does not open inbound ports.

@@ -52,6 +52,8 @@ require_value() {
 
 instance_id=$(env_value "$instance_env" INSTANCE_ID)
 system_id=$(env_value "$instance_env" SYSTEM_ID)
+system_ids=$(env_value "$instance_env" SYSTEM_IDS)
+system_ids=${system_ids:-$system_id}
 private_ip=$(env_value "$instance_env" PRIVATE_BIND_ADDRESS)
 game_port=$(env_value "$instance_env" GAME_UDP_PORT)
 player_limit=$(env_value "$instance_env" PUBLIC_PLAYER_LIMIT)
@@ -65,10 +67,12 @@ endpoint="${private_ip}:${game_port}"
 
 jq -e --arg instance "$instance_id" \
        --arg system "$system_id" \
+       --arg systems "$system_ids" \
        --arg endpoint "$endpoint" \
        --arg status "$status_file" \
        --argjson players "$player_limit" \
   '(.InstanceId == $instance) and (.SystemId == $system) and
+   ((if (.SystemIds // [] | length) > 0 then .SystemIds else [.SystemId] end | sort) == ($systems | split(",") | sort)) and
    (.InstanceEndpoint == $endpoint) and (.RuntimeStatusFile == $status) and
    (.MaxPlayers == $players)' "$llserver_config" >/dev/null || {
   echo "LLServer configuration does not match instance env" >&2
@@ -81,9 +85,12 @@ if [[ -n "$agent_env" ]]; then
   agent_endpoint=$(env_value "$agent_env" Agent__Instance__Endpoint)
   agent_players=$(env_value "$agent_env" Agent__Instance__MaxPlayers)
   agent_status=$(env_value "$agent_env" Agent__Instance__StatusFile)
+  agent_systems=$(awk -F= '$1 ~ /^Agent__Instance__SystemIds__[0-9]+$/ { print $2 }' "$agent_env" | sort | paste -sd, -)
+  agent_systems=${agent_systems:-$agent_system}
+  expected_systems=$(printf '%s\n' "$system_ids" | tr ',' '\n' | sort | paste -sd, -)
   [[ "$agent_instance" == "$instance_id" && "$agent_system" == "$system_id" &&
      "$agent_endpoint" == "$endpoint" && "$agent_players" == "$player_limit" &&
-     "$agent_status" == "$status_file" ]] || {
+     "$agent_status" == "$status_file" && "$agent_systems" == "$expected_systems" ]] || {
     echo "Agent configuration does not match instance env" >&2
     exit 65
   }

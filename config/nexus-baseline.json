@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "instances": [
+    {
+      "instanceId": "br-01",
+      "group": "br",
+      "systems": [
+        "br01",
+        "br02",
+        "br03",
+        "br04",
+        "br05",
+        "br06"
+      ],
+      "assetDirectories": [
+        "br01",
+        "br02",
+        "br03",
+        "br04",
+        "br05",
+        "br06"
+      ]
+    },
+    {
+      "instanceId": "bw-01",
+      "group": "bw",
+      "systems": [
+        "bw01",
+        "bw02",
+        "bw03",
+        "bw04",
+        "bw05",
+        "bw06",
+        "bw07",
+        "bw08",
+        "bw09",
+        "bw10"
+      ],
+      "assetDirectories": [
+        "bw01",
+        "bw02",
+        "bw03",
+        "bw04",
+        "bw05",
+        "bw06",
+        "bw07",
+        "bw08",
+        "bw09",
+        "bw10"
+      ]
+    },
+    {
+      "instanceId": "ew-01",
+      "group": "ew",
+      "systems": [
+        "ew01",
+        "ew02",
+        "ew03",
+        "ew04",
+        "ew05"
+      ],
+      "assetDirectories": [
+        "ew01",
+        "ew02",
+        "ew03",
+        "ew04",
+        "ew05"
+      ]
+    },
+    {
+      "instanceId": "iw-01",
+      "group": "iw",
+      "systems": [
+        "iw01",
+        "iw02",
+        "iw03",
+        "iw04",
+        "iw05",
+        "iw06"
+      ],
+      "assetDirectories": [
+        "iw01",
+        "iw02",
+        "iw03",
+        "iw04",
+        "iw05",
+        "iw06"
+      ]
+    },
+    {
+      "instanceId": "ku-01",
+      "group": "ku",
+      "systems": [
+        "ku01",
+        "ku02",
+        "ku03",
+        "ku04",
+        "ku05",
+        "ku06"
+      ],
+      "assetDirectories": [
+        "ku01",
+        "ku02",
+        "ku03",
+        "ku04",
+        "ku05",
+        "ku06"
+      ]
+    },
+    {
+      "instanceId": "li-01",
+      "group": "li",
+      "systems": [
+        "li01",
+        "li02",
+        "li03",
+        "li04",
+        "li05"
+      ],
+      "assetDirectories": [
+        "li01",
+        "li02",
+        "li03",
+        "li04",
+        "li05"
+      ]
+    },
+    {
+      "instanceId": "rh-01",
+      "group": "rh",
+      "systems": [
+        "rh01",
+        "rh02",
+        "rh03",
+        "rh04",
+        "rh05"
+      ],
+      "assetDirectories": [
+        "rh01",
+        "rh02",
+        "rh03",
+        "rh04",
+        "rh05"
+      ]
+    },
+    {
+      "instanceId": "mixed-01",
+      "group": "mixed",
+      "systems": [
+        "ew06",
+        "fp7_system",
+        "hi01",
+        "hi02",
+        "ku07",
+        "st01",
+        "st02",
+        "st02c",
+        "st03",
+        "st03b"
+      ],
+      "assetDirectories": [
+        "ew06",
+        "fp7",
+        "hi01",
+        "hi02",
+        "intro",
+        "ku07",
+        "miners",
+        "st01",
+        "st02",
+        "st02c",
+        "st03",
+        "st03b"
+      ]
+    }
+  ],
+  "nonWorldDirectories": [
+    "intro",
+    "miners"
+  ],
+  "systemCount": 53,
+  "systemDirectoryCount": 55
+}

@@ -34,7 +34,7 @@ def provision_npc_transfer_certificates(private, ca, ca_key, groups):
         if pfx.exists() != crt.exists():
             raise ValueError(f"Incomplete NPC transfer certificate for {identity}; refusing to replace it")
         if not pfx.exists():
-            with tempfile.TemporaryDirectory(prefix="nexus-npc-tls-") as directory:
+            with tempfile.TemporaryDirectory(prefix="nexus-npc-tls-", dir=cert_dir) as directory:
                 temp = Path(directory)
                 key = temp / "key.pem"
                 csr = temp / "request.csr"

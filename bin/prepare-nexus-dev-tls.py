@@ -10,7 +10,59 @@ import tempfile
 
 
 def run(*args):
-    subprocess.run(["openssl", *map(str, args)], check=True, capture_output=True)
+    return subprocess.run(["openssl", *map(str, args)], check=True, capture_output=True)
+
+
+def provision_npc_transfer_certificates(private, ca, ca_key, groups):
+    cert_dir = private / "npc-transfer-certs"
+    cert_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(cert_dir, 0o700)
+    trust = cert_dir / "npc-transfer-ca.crt"
+    if trust.exists():
+        if trust.read_bytes() != ca.read_bytes():
+            raise ValueError("Existing NPC transfer CA differs from the preserved development CA")
+    else:
+        trust.write_bytes(ca.read_bytes())
+    os.chmod(trust, 0o600)
+
+    identities = [group["instanceId"] for group in groups]
+    if any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,127}", identity) for identity in identities):
+        raise ValueError("NPC transfer instance IDs must be valid DNS certificate identities")
+    for identity in identities:
+        pfx = cert_dir / f"{identity}.pfx"
+        crt = cert_dir / f"{identity}.crt"
+        if pfx.exists() != crt.exists():
+            raise ValueError(f"Incomplete NPC transfer certificate for {identity}; refusing to replace it")
+        if not pfx.exists():
+            with tempfile.TemporaryDirectory(prefix="nexus-npc-tls-") as directory:
+                temp = Path(directory)
+                key = temp / "key.pem"
+                csr = temp / "request.csr"
+                temp_pfx = temp / f"{identity}.pfx"
+                temp_crt = temp / f"{identity}.crt"
+                ext = temp / "extensions.cnf"
+                ext.write_text(
+                    "basicConstraints=critical,CA:FALSE\n"
+                    "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                    "extendedKeyUsage=clientAuth,serverAuth\n"
+                    f"subjectAltName=DNS:{identity}\n")
+                run("req", "-new", "-newkey", "rsa:2048", "-noenc", "-keyout", key,
+                    "-out", csr, "-subj", f"/CN={identity}")
+                run("x509", "-req", "-in", csr, "-CA", ca, "-CAkey", ca_key, "-CAcreateserial",
+                    "-days", "365", "-out", temp_crt, "-extfile", ext)
+                run("pkcs12", "-export", "-out", temp_pfx, "-inkey", key, "-in", temp_crt, "-certfile", ca,
+                    "-passout", "pass:")
+                run("verify", "-CAfile", trust, "-purpose", "sslclient", temp_crt)
+                run("verify", "-CAfile", trust, "-purpose", "sslserver", temp_crt)
+                run("x509", "-in", temp_crt, "-noout", "-checkhost", identity)
+                os.chmod(temp_pfx, 0o600)
+                os.replace(temp_crt, crt)
+                os.replace(temp_pfx, pfx)
+        run("verify", "-CAfile", trust, "-purpose", "sslclient", crt)
+        run("verify", "-CAfile", trust, "-purpose", "sslserver", crt)
+        run("x509", "-in", crt, "-noout", "-checkhost", identity)
+        os.chmod(pfx, 0o600)
+    return cert_dir
 
 
 def main():
@@ -35,6 +87,7 @@ def main():
         run("req", "-x509", "-newkey", "rsa:3072", "-noenc", "-days", "365",
             "-keyout", ca_key, "-out", ca, "-subj", "/CN=Nexus local development CA",
             "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign")
+    npc_cert_dir = provision_npc_transfer_certificates(private, ca, ca_key, plan["instances"])
     for identity, stem, purpose in [(node, node, "clientAuth"), (coordinator, "coordinator-quic", "serverAuth")]:
         pfx = private / f"{stem}.pfx"
         crt = private / f"{stem}.crt"
@@ -67,7 +120,7 @@ def main():
                    f"Coordinator__Quic__ClientCaCertificatePath={ca}\n"
                    "Coordinator__Quic__RequiredCapabilities__0=cluster_handshake_v1\n")
     os.chmod(env, 0o600)
-    print("Local development mTLS certificates and Coordinator QUIC environment prepared.")
+    print(f"Local development mTLS certificates prepared, including NPC transfer identities in {npc_cert_dir}.")
 
 
 if __name__ == "__main__":

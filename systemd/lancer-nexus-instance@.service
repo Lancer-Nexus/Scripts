@@ -13,6 +13,7 @@ ExecStartPre=/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.s
 ExecStart=/opt/lancer-nexus/current/client/LLServer --config /etc/lancer-nexus/instances/%i.json
 ExecStartPost=/opt/lancer-nexus/current/scripts/bin/ln-wait-instance-ready.sh --llserver-config /etc/lancer-nexus/instances/%i.json --timeout 90
 EnvironmentFile=/etc/lancer-nexus/instances/%i.env
+EnvironmentFile=/etc/lancer-nexus/instance-secrets.env
 StateDirectory=lancer-nexus-instance-%i
 UMask=0077
 Restart=on-failure

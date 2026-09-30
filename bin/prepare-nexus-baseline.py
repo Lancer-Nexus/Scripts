@@ -93,7 +93,38 @@ def prepare(args):
     from urllib.parse import urlparse
     if urlparse(args.gateway).scheme != "https" or not urlparse(args.gateway).hostname:
         raise ValueError("Gateway must use HTTPS")
+    coordinator_http_url = args.coordinator_http_url
+    if not coordinator_http_url:
+        quic = urlparse("//" + args.coordinator)
+        if not quic.hostname or quic.port is None:
+            raise ValueError("Coordinator QUIC endpoint must be a host:port")
+        host = f"[{quic.hostname}]" if ":" in quic.hostname else quic.hostname
+        coordinator_http_url = f"https://{host}:8444"
+    coordinator_http = urlparse(coordinator_http_url)
+    if (coordinator_http.scheme not in ("https", "http") or not coordinator_http.hostname or
+            coordinator_http.username or coordinator_http.password or coordinator_http.query or
+            coordinator_http.fragment or coordinator_http.path not in ("", "/") or
+            (coordinator_http.scheme == "http" and coordinator_http.hostname not in
+             ("localhost", "127.0.0.1", "::1"))):
+        raise ValueError("NPC Coordinator URL must be HTTPS (HTTP is allowed only for loopback development)")
+    if args.npc_transfer_port_base and (args.npc_transfer_port_base < 1024 or
+                                        args.npc_transfer_port_base + 7 > 65535):
+        raise ValueError("NPC transfer port base must leave eight valid private ports")
+    if args.npc_transfer_port_base and not (args.npc_transfer_port_base + 7 < args.first_port or
+                                            args.npc_transfer_port_base > args.first_port + 7):
+        raise ValueError("NPC transfer ports must not overlap the game UDP port range")
+    transfer_cert_dir = args.npc_transfer_cert_dir.resolve() if args.npc_transfer_cert_dir else None
+    if args.npc_transfer_port_base and transfer_cert_dir is None:
+        raise ValueError("NPC transfer certificates are required when the transfer listener is enabled")
     plan = inventory(game)
+    if args.npc_transfer_port_base:
+        if not (transfer_cert_dir / "npc-transfer-ca.crt").is_file():
+            raise ValueError("NPC transfer CA certificate is missing from the certificate directory")
+        missing_certificates = [str(transfer_cert_dir / f"{group['instanceId']}.pfx")
+                               for group in plan["instances"]
+                               if not (transfer_cert_dir / f"{group['instanceId']}.pfx").is_file()]
+        if missing_certificates:
+            raise ValueError("NPC transfer server certificates are missing: " + ", ".join(missing_certificates))
     if args.inventory:
         write_json(args.inventory, plan)
     output.mkdir(parents=True, exist_ok=True)
@@ -126,12 +157,22 @@ def prepare(args):
         config = {"ServerName": f"Lancer Nexus {group['group'].upper()}",
                   "ServerDescription": "Nexus baseline: " + ", ".join(group["systems"]),
                   "FreelancerPath": str(game), "LoginUrl": args.gateway,
+                  "NpcCoordinatorUrl": coordinator_http_url,
                   "DatabasePath": str(state / "characters.sqlite3"), "Port": port,
                   "BindAddress": str(address),
                   "MaxPlayers": args.max_players, "ThreadCount": 0,
                   "InstanceId": instance, "SystemId": group["systems"][0],
                   "SystemIds": group["systems"], "InstanceEndpoint": endpoint,
                   "RuntimeStatusFile": str(state / "status.json"), "DrainFlagFile": str(state / "drain.flag")}
+        if args.npc_transfer_port_base:
+            server_certificate = transfer_cert_dir / f"{instance}.pfx"
+            config.update({
+                "NpcTransferListenAddress": str(address),
+                "NpcTransferPort": args.npc_transfer_port_base + index,
+                "NpcTransferServerCertificate": str(server_certificate),
+                "NpcTransferClientCaCertificate": str(transfer_cert_dir / "npc-transfer-ca.crt"),
+                "NpcTransferStagingDirectory": str(state / "npc-transfers")
+            })
         write_json(output / "config" / f"{instance}.json", config)
         env = state_root / "private" / f"{instance}.env"
         with os.fdopen(os.open(env, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
@@ -203,7 +244,12 @@ def main():
     parser.add_argument("--gateway-ca", type=Path, help="Trusted Gateway HTTPS CA for a private local deployment")
     parser.add_argument("--node", default="nexus-local")
     parser.add_argument("--coordinator", default="127.0.0.1:7443")
+    parser.add_argument("--coordinator-http-url", help="Private Coordinator HTTP base URL; defaults to https://<QUIC-host>:8444")
     parser.add_argument("--coordinator-name", default="coordinator.internal.example")
+    parser.add_argument("--npc-transfer-port-base", type=int, default=0,
+                        help="Enable NPC mTLS/QUIC listeners on eight consecutive private ports")
+    parser.add_argument("--npc-transfer-cert-dir", type=Path,
+                        help="Directory containing <instance>.pfx certificates and npc-transfer-ca.crt")
     args = parser.parse_args()
     try:
         prepare(args)

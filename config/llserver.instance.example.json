@@ -3,6 +3,7 @@
   "ServerDescription": "Private Lancer Nexus game instance",
   "FreelancerPath": "/opt/librelancer/data/freelancer",
   "LoginUrl": "https://gateway.example.net",
+  "NpcCoordinatorUrl": "https://10.20.0.20:8444",
   "DatabasePath": "/var/lib/lancer-nexus/instances/liberty-01/server.db",
   "Port": 2300,
   "MaxPlayers": 200,

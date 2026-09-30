@@ -7,14 +7,16 @@ This map separates implemented listeners from intended routes. Sample private ad
 | Source | Destination | Transport / port | Purpose | State |
 |---|---|---|---|---|
 | Client | `gateway.example.net` | HTTPS/TCP 443 | Login, session and API entry | Gateway listener, login, refresh, session metadata, character listing and placement forwarding are implemented |
-| Gateway | Coordinator private address | HTTPS/TCP 8444 | Placement and transfer control | Placement forwarding is implemented; transfer control remains unimplemented |
+| Gateway | Coordinator private address | HTTPS/TCP 8444 | Placement forwarding | Implemented and bearer-protected; GameServer NPC handoffs call the Coordinator directly |
+| GameServer | Coordinator private address | HTTPS/TCP 8444 | Coordinator-issued NPC IDs, mission-NPC transfer reservation/phases and durable recovery | Implemented over private HTTPS with the configured bearer key; NPC ownership and transfer journal require the Coordinator MySQL store |
 | Agent | Coordinator private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-control/1`, UDP 7443 | Hello negotiation; sequenced AgentHeartbeat and optional InstanceHeartbeat request/ack streams | Instance heartbeat requires a fresh LLServer runtime-status file and matching `instance_heartbeat_v1` capability; absent/stale status is reported as not ready; lifecycle commands remain unimplemented |
+| Source GameServer | Target GameServer private address | QUIC/TLS 1.3/mTLS, ALPN `lancer-nexus-npc-transfer/1`, configured private UDP port (local dev 27000–27007) | Singleplayer mission jumper runtime snapshot handoff | Implemented when both instances advertise `npc_transfer_v1`; target durably stages the snapshot and keeps it inert until Coordinator commit |
 | Legacy Agent HTTP client | Coordinator private address | HTTPS/TCP 8444, `POST /internal/v1/agents/heartbeat` | Compatibility HTTP heartbeat endpoint | Implemented and bearer-protected; the current Agent worker uses QUIC |
 | Coordinator | Agent | No inbound route | Future lifecycle commands | Not implemented; Agent should remain outbound-only |
 | Client | Assigned game endpoint | UDP 2300 via `gateway.example.net` | Game packets | Planned only; no Gateway/L4 relay or per-instance mapping exists |
 | Game instance | Its private host interface | UDP 2300 | Private game listener | Deployment example only; do not make it public |
 | Gateway | MySQL / Redis on private addresses | TCP 3306 / TCP 6379 | Identity/character and transient session data | MySQL identity, session, refresh-token and character reads are implemented; Redis remains planned |
-| Coordinator | MySQL on private address | TCP 3306 | Durable shared cluster state for later replicas | Planned; current Coordinator uses its local filesystem store |
+| Coordinator | MySQL on private address | TCP 3306 | NPC ownership leases, transfer journal and recoverable snapshots | Implemented when `Coordinator:NpcOwnershipConnectionString` is configured; the Coordinator registry still uses its local filesystem store |
 | Events | MySQL / Redis on private addresses | TCP 3306 / TCP 6379 | Durable event state and transient event distribution | Planned; Events has no runtime integration yet |
 | Events | Gateway / Coordinator APIs | HTTPS on private routes | Registration, reservation and result flow | Planned; Events has no standalone listener |
 | Cluster integration | In-process host | No separate port | Optional LibreLancer hooks | Planned; disabled by default |
@@ -42,10 +44,16 @@ The client-game path remains an architecture gap: the cluster design forbids pub
 | Coordinator | GET | `/api/v1/capabilities` | Private service listener |
 | Coordinator | POST | `/internal/v1/agents/heartbeat` | Private HTTPS + bearer key |
 | Coordinator | POST | `/internal/v1/instances/heartbeat` | Private HTTPS + bearer key |
+| Coordinator | POST | `/internal/v1/npcs/allocate` | Private HTTPS + bearer key; requires a live instance heartbeat and the MySQL NPC ownership store |
+| Coordinator | POST | `/internal/v1/npc-transfers/prepare` | Private HTTPS + bearer key; reserves NPC ownership and validates source/target transfer capability |
+| Coordinator | POST | `/internal/v1/npc-transfers/{transferId}/phase` | Private HTTPS + bearer key; durably advances the NPC transfer journal |
+| Coordinator | GET | `/internal/v1/npc-transfers/{transferId}/recovery` | Private HTTPS + bearer key; source/target journal recovery, optionally including the snapshot |
+| Coordinator | GET | `/internal/v1/npc-transfers/recovery` | Private HTTPS + bearer key; committed target transfer pages |
+| Coordinator | GET | `/internal/v1/npc-transfers/source-recovery` | Private HTTPS + bearer key; pending source transfer pages |
 | Coordinator | GET | `/internal/v1/registry` | Private HTTPS + bearer key |
 | Coordinator | POST | `/api/v1/placement` | Private HTTPS + bearer key |
 
-Transfer, group and event routes in the architecture plan are not implemented in the current Gateway skeleton. They must not be put in an ingress allowlist as if they existed. The implemented authentication and character routes still require the configured MySQL dependency and signing key.
+The Coordinator routes above implement NPC identity ownership and NPC handoff recovery. Other unlisted group and event routes from the architecture plan are not implemented and must not be put in an ingress allowlist as if they existed. Gateway authentication and character routes still require the configured MySQL dependency and signing key.
 
 ## Binding and firewall rules
 

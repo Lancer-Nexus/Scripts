@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import tempfile
 
@@ -65,6 +66,36 @@ def provision_npc_transfer_certificates(private, ca, ca_key, groups):
     return cert_dir
 
 
+def local_coordinator_api_key(private):
+    path = private / "npc-coordinator-api-key"
+    if path.exists():
+        key = path.read_text().strip()
+        if len(key.encode("utf-8")) < 32:
+            raise ValueError("Existing local Coordinator API key is too short; refusing to replace it")
+        os.chmod(path, 0o600)
+        return key
+    key = secrets.token_urlsafe(48)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w") as output:
+        output.write(key + "\n")
+    return key
+
+
+def write_secret_environment(private, api_key):
+    path = private / "instance-secrets.env"
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".instance-secrets.", dir=private)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w") as output:
+            output.write("LANCER_NEXUS_COORDINATOR_API_KEY=" + api_key + "\n")
+            output.write("LANCER_NEXUS_NPC_TRANSFER_CERT_PASSWORD=\n")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    os.chmod(path, 0o600)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
@@ -88,6 +119,8 @@ def main():
             "-keyout", ca_key, "-out", ca, "-subj", "/CN=Nexus local development CA",
             "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign")
     npc_cert_dir = provision_npc_transfer_certificates(private, ca, ca_key, plan["instances"])
+    api_key = local_coordinator_api_key(private)
+    write_secret_environment(private, api_key)
     for identity, stem, purpose in [(node, node, "clientAuth"), (coordinator, "coordinator-quic", "serverAuth")]:
         pfx = private / f"{stem}.pfx"
         crt = private / f"{stem}.crt"
@@ -118,6 +151,7 @@ def main():
                    f"Coordinator__Quic__InstanceId=coordinator-01\n"
                    f"Coordinator__Quic__ServerCertificatePath={private / 'coordinator-quic.pfx'}\n"
                    f"Coordinator__Quic__ClientCaCertificatePath={ca}\n"
+                   f"Coordinator__InternalApiKey={api_key}\n"
                    "Coordinator__Quic__RequiredCapabilities__0=cluster_handshake_v1\n")
     os.chmod(env, 0o600)
     print(f"Local development mTLS certificates prepared, including NPC transfer identities in {npc_cert_dir}.")

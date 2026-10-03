@@ -72,6 +72,25 @@ python3 tools/isolate-e2e-mission.py --client-root ../output/dev/client --test-r
 The fixture tests prove its structure, not a live coupled handoff. Verify both
 character and NPC journal decisions and active copies after the actual gate jump.
 
+## Mission fixture continuity check
+
+Use Protocol's `NpcTransferDiagnostics snapshot /path/to/frozen.msgpack --json`
+to export one validated NPC snapshot. After the target player spawns, capture
+`npc-state` and read its `SpawnPlayer` tick from the Debug client log (`Spawning at ...`).
+Then run:
+
+```bash
+python3 tools/check-npc-mission-continuity.py frozen.json target-npc-state.json --instance li02 --spawn-tick 8294
+python3 -m unittest discover -s tests -p test_npc_mission_continuity.py
+```
+
+The check compares ownership version, system, mission identity, random state,
+labels and conditions. Each active timer must equal the frozen time plus elapsed
+target ticks at 60 Hz (tolerance 0.05 seconds). It is intended for the idle test
+fixture with no intervening mission actions. It does not validate arbitrary
+mission progress, journal commit, authentication or active copies on other
+instances; check those separately with SQL and `compare-npc-state.py`.
+
 ## Contents
 
 - systemd units

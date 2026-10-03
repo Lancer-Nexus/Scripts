@@ -25,6 +25,44 @@ The check rejects missing/wrong service keys and an inline game-instance credent
 
 The Scripts repository provides Linux host automation for Lancer Nexus services and game instances.
 
+## Isolated mission transfer fixture
+
+For the local two-instance Debug test, the following helpers replace only the collected
+Mission_01a asset with a transport, an escort, a formation and a 600-second trigger.
+They omit the original intro cinematics. Stop the test GameServers before applying
+or restoring the fixture; restart both afterwards.
+
+```bash
+python3 tools/isolate-e2e-mission.py --client-root ../output/dev/client --test-root ../output/dev/first-client-e2e-run
+python3 tools/set-e2e-mission.py --test-root ../output/dev/first-client-e2e-run
+python3 -m unittest discover -s tests -p test_e2e_mission_fixture.py
+```
+
+If an intro run left the isolated pilot without a ship or any cargo, stop the source
+server and restore its original loadout with:
+
+```bash
+python3 tools/prepare-e2e-space-pilot.py --client-root ../output/dev/client --test-root ../output/dev/first-client-e2e-run --pilot Test
+```
+
+This narrowly scoped helper refuses populated cargo and a running source LLServer,
+retains a private SQLite backup, and leaves the Gateway lease unchanged.
+
+Use a test pilot with a valid ship in space in Li01. The fixture moves that pilot to
+the Li01-to-Li03 gate and spawns two mission jumpers nearby. The existing target
+instance called li02 owns Li03 in this test topology. Configuration requires the
+existing rank-50 E2E preset. Neither helper changes character data or ownership
+leases. The original asset is retained under the test state's
+`isolated-mission-original/m01a.ini`; repeated installation uses that backup.
+
+```bash
+python3 tools/set-e2e-mission.py --test-root ../output/dev/first-client-e2e-run --disable
+python3 tools/isolate-e2e-mission.py --client-root ../output/dev/client --test-root ../output/dev/first-client-e2e-run --restore
+```
+
+The fixture tests prove its structure, not a live coupled handoff. Verify both
+character and NPC journal decisions and active copies after the actual gate jump.
+
 ## Contents
 
 - systemd units

@@ -1,5 +1,28 @@
 # Lancer Nexus Scripts
 
+## NPC mission authority helpers
+
+Configure private Gateway and Coordinator environment files with the same dedicated authority key:
+
+```bash
+python3 tools/configure-npc-mission-authority.py \
+  --gateway-env /private/gateway.env --coordinator-env /private/coordinator.env \
+  --gateway-url https://gateway.internal:8443/
+```
+
+Files must already exist, be owned by the caller and have private permissions (0600). Existing matching keys are reused; conflicting or shared service/instance keys are rejected. Other assignments remain unchanged. Updates use atomic file replacement and fsync; interrupted pair updates can be retried. The helper never prints credentials or applies SQL migrations. Before starting the decision-aware Gateway, stop transfer writers and apply Gateway migration 005 using its deployment migration procedure. Use systemd lifecycle in deployed environments; the local two-instance test harness is separate.
+
+Check readiness, TLS and service authentication without changing character or NPC data:
+
+```bash
+python3 tools/check-npc-mission-authority.py \
+  --gateway-env /private/gateway.env --coordinator-env /private/coordinator.env \
+  --ca-file /private/cluster-http-ca.pem --coordinator-url https://coordinator.internal:8444/
+python3 -m unittest discover -s tests -p test_npc_mission_authority_config.py
+```
+
+The check rejects missing/wrong service keys and an inline game-instance credential, then checks that a fresh unknown transfer is refused with the correct service key. HTTPS verification remains enabled and redirects are disabled. This verifies the private API boundary; it does not prove a live mission transfer or process-failure recovery. A deployment observation is recorded in [NPC mission authority activation](docs/npc-mission-authority-activation.md).
+
 The Scripts repository provides Linux host automation for Lancer Nexus services and game instances.
 
 ## Contents

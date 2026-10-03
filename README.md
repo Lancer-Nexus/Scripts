@@ -53,7 +53,9 @@ changing the template. It refuses an existing destination name and chooses an ID
 above both local test databases. Run the existing E2E character lease bridge after
 login to register this new pilot in the isolated Gateway database; no existing
 character lease is reassigned. This is a test fixture, not a production character
-creation API.
+creation API. Use `--position-only --pilot MissionConvoy` on an existing
+equipped fixture pilot to repair its local start position while preserving cargo;
+the source GameServer must be stopped.
 
 Use a test pilot with a valid ship in space in Li01. The fixture moves that pilot to
 the Li01-to-Li03 gate and spawns two mission jumpers nearby. The existing target

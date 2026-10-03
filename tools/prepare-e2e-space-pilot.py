@@ -15,7 +15,10 @@ def main():
     parser.add_argument('--client-root', type=Path, required=True)
     parser.add_argument('--pilot', default='Test')
     parser.add_argument('--clone-from', help='Create a separate local fixture pilot from this existing source pilot')
+    parser.add_argument('--position-only', action='store_true', help='Move an equipped existing fixture pilot without replacing cargo')
     args = parser.parse_args()
+    if args.position_only and args.clone_from:
+        parser.error('Position-only repair requires an existing pilot, not a clone.')
     config = args.test_root / 'gameserver/llserver-li01.json'
     value = json.loads(config.read_text())
     if value.get('InstanceId') != 'li01' or value.get('TestNewCharacterRank') != 50:
@@ -68,7 +71,7 @@ def main():
         row = (clone['Id'], clone['Ship'])
     if row is None or row[1] not in (None, 'li_elite'):
         parser.error('Expected isolated Liberty elite test pilot required.')
-    if connection.execute('SELECT COUNT(*) FROM CargoItem WHERE CharacterId=?', (row[0],)).fetchone()[0]:
+    if not args.position_only and connection.execute('SELECT COUNT(*) FROM CargoItem WHERE CharacterId=?', (row[0],)).fetchone()[0]:
         parser.error('Pilot cargo is not empty; refusing to overwrite existing equipment.')
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     backup = database.with_name(f'li01-before-space-pilot-{stamp}.sqlite3')
@@ -83,11 +86,14 @@ def main():
         connection.execute("UPDATE Characters SET Ship='li_elite',Base=NULL,System='Li01',"
                            'X=-12831,Y=0,Z=-81511,RotationX=0,RotationY=0,RotationZ=0,RotationW=1,Rank=50 WHERE Id=?',
                            (row[0],))
-        connection.executemany('INSERT INTO CargoItem '
+        if not args.position_only:
+            connection.executemany('INSERT INTO CargoItem '
             '(ItemName,ItemCount,Hardpoint,Health,IsMissionItem,CharacterId,CreationDate) VALUES (?,?,?,1,0,?,?)',
             [(name, count, hardpoint, row[0], datetime.now(timezone.utc).timestamp() / 86400 + 2440587.5) for name, count, hardpoint in cargo])
     connection.close()
-    print('Empty test pilot restored in space with original loadout; private SQLite backup retained. Gateway lease unchanged.')
+    print(('Test pilot moved to the source gate; cargo preserved.' if args.position_only else
+           'Empty test pilot restored in space with original loadout.') +
+          ' Private SQLite backup retained. Gateway lease unchanged.')
 
 
 if __name__ == '__main__':

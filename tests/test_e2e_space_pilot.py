@@ -56,6 +56,10 @@ class SpacePilotTests(unittest.TestCase):
             second_clone = subprocess.run(cmd + ['--pilot', 'Convoy', '--clone-from', 'Test'], capture_output=True, text=True)
             self.assertNotEqual(0, second_clone.returncode)
             self.assertIn('already exists', second_clone.stderr)
+            positioned = subprocess.run(cmd + ['--position-only'], capture_output=True, text=True)
+            self.assertEqual(0, positioned.returncode, positioned.stderr)
+            with sqlite3.connect(database) as db:
+                self.assertEqual(3, db.execute('SELECT COUNT(*) FROM CargoItem WHERE CharacterId=1').fetchone()[0])
             repeat = subprocess.run(cmd, capture_output=True, text=True)
             self.assertNotEqual(0, repeat.returncode)
             self.assertIn('cargo is not empty', repeat.stderr)

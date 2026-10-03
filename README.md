@@ -47,6 +47,13 @@ python3 tools/prepare-e2e-space-pilot.py --client-root ../output/dev/client --te
 
 This narrowly scoped helper refuses populated cargo and a running source LLServer,
 retains a private SQLite backup, and leaves the Gateway lease unchanged.
+For another independent handoff, use `--pilot MissionConvoy --clone-from Test`.
+This creates a new local fixture character and restores its default loadout without
+changing the template. It refuses an existing destination name and chooses an ID
+above both local test databases. Run the existing E2E character lease bridge after
+login to register this new pilot in the isolated Gateway database; no existing
+character lease is reassigned. This is a test fixture, not a production character
+creation API.
 
 Use a test pilot with a valid ship in space in Li01. The fixture moves that pilot to
 the Li01-to-Li03 gate and spawns two mission jumpers nearby. The existing target

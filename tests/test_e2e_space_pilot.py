@@ -43,6 +43,19 @@ class SpacePilotTests(unittest.TestCase):
             with sqlite3.connect(backups[0]) as db:
                 self.assertIsNone(db.execute('SELECT Ship FROM Characters').fetchone()[0])
                 self.assertEqual(0, db.execute('SELECT COUNT(*) FROM CargoItem').fetchone()[0])
+            # A distinct pilot can be created without changing the existing character or cargo.
+            with sqlite3.connect(server / 'li02-characters.sqlite3') as peer:
+                peer.execute('CREATE TABLE Characters (Id INTEGER)')
+                peer.execute('INSERT INTO Characters VALUES (8)')
+            cloned = subprocess.run(cmd + ['--pilot', 'Convoy', '--clone-from', 'Test'], capture_output=True, text=True)
+            self.assertEqual(0, cloned.returncode, cloned.stderr)
+            with sqlite3.connect(database) as db:
+                self.assertEqual(9, db.execute("SELECT Id FROM Characters WHERE Name='Convoy'").fetchone()[0])
+                self.assertEqual(3, db.execute('SELECT COUNT(*) FROM CargoItem WHERE CharacterId=1').fetchone()[0])
+                self.assertEqual(3, db.execute('SELECT COUNT(*) FROM CargoItem WHERE CharacterId=9').fetchone()[0])
+            second_clone = subprocess.run(cmd + ['--pilot', 'Convoy', '--clone-from', 'Test'], capture_output=True, text=True)
+            self.assertNotEqual(0, second_clone.returncode)
+            self.assertIn('already exists', second_clone.stderr)
             repeat = subprocess.run(cmd, capture_output=True, text=True)
             self.assertNotEqual(0, repeat.returncode)
             self.assertIn('cargo is not empty', repeat.stderr)

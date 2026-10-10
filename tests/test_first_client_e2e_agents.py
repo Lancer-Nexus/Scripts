@@ -63,6 +63,8 @@ class FirstClientE2eAgentConfigurationTests(unittest.TestCase):
         self.assertEqual(coordinator["Coordinator__Quic__Enabled"], "true")
         self.assertEqual(coordinator["Coordinator__Quic__Port"], "27443")
         self.assertTrue(Path(coordinator["Coordinator__Quic__ServerCertificatePath"]).is_file())
+        coordinator_ca = coordinator["Coordinator__Quic__ClientCaCertificatePath"]
+        self.assertTrue(Path(coordinator_ca).is_file())
 
         for suffix, instance, system in (("li01", "li01", "li01"), ("li02", "li02", "li03")):
             config_path = self.run_root / f"gameserver/llserver-{suffix}.json"
@@ -72,6 +74,7 @@ class FirstClientE2eAgentConfigurationTests(unittest.TestCase):
             self.assertTrue(config["FlHookCompatClusterEventsEnabled"])
             self.assertEqual(config["ClusterAgentNodeId"], f"first-e2e-{suffix}")
             self.assertTrue(Path(config["CoordinatorQuicClientCertificate"]).is_file())
+            self.assertEqual(config["CoordinatorQuicCaCertificate"], coordinator_ca)
             self.assertTrue(Path(config["FlHookCompatEventOutboxFile"]).parent.is_dir())
 
             agent_env = private / f"{suffix}-agent.env"
@@ -80,6 +83,9 @@ class FirstClientE2eAgentConfigurationTests(unittest.TestCase):
             self.assertEqual(agent_values["Agent__AgentId"], f"first-e2e-agent-{suffix}")
             self.assertEqual(agent_values["Agent__Instance__SystemId"], system)
             self.assertEqual(agent_values["Agent__Capabilities__3"], "flhook_events_v1")
+            self.assertEqual(agent_values["Agent__Coordinator__CaCertificatePath"], coordinator_ca)
+            self.assertEqual(agent_values["Agent__Coordinator__ServerName"], "localhost")
+            self.assertEqual(config["CoordinatorQuicServerName"], "localhost")
             self.assertNotEqual(agent_values["Agent__StateFile"],
                                 (private / f"{('li02' if suffix == 'li01' else 'li01')}-heartbeat-sequence.txt").as_posix())
             self.assertEqual(agent_env.stat().st_mode & 0o777, 0o600)

@@ -107,6 +107,14 @@ def prepare(args):
             (coordinator_http.scheme == "http" and coordinator_http.hostname not in
              ("localhost", "127.0.0.1", "::1"))):
         raise ValueError("NPC Coordinator URL must be HTTPS (HTTP is allowed only for loopback development)")
+    redis_endpoint = args.permission_redis_endpoint.strip()
+    separator = redis_endpoint.rfind(":")
+    if (separator <= 0 or not redis_endpoint[:separator].strip() or
+            not redis_endpoint[:separator].strip().replace("[", "").replace("]", "") or
+            not redis_endpoint[separator + 1:].isdigit() or
+            not 1 <= int(redis_endpoint[separator + 1:]) <= 65535 or
+            any(character.isspace() for character in redis_endpoint)):
+        raise ValueError("Permission Redis endpoint must use host:port form")
     if args.npc_transfer_port_base and (args.npc_transfer_port_base < 1024 or
                                         args.npc_transfer_port_base + 7 > 65535):
         raise ValueError("NPC transfer port base must leave eight valid private ports")
@@ -117,6 +125,7 @@ def prepare(args):
     if args.npc_transfer_port_base and transfer_cert_dir is None:
         raise ValueError("NPC transfer certificates are required when the transfer listener is enabled")
     plan = inventory(game)
+    plan["permissionRedisEndpoint"] = redis_endpoint
     if args.npc_transfer_port_base:
         if not (transfer_cert_dir / "npc-transfer-ca.crt").is_file():
             raise ValueError("NPC transfer CA certificate is missing from the certificate directory")
@@ -163,7 +172,9 @@ def prepare(args):
                   "MaxPlayers": args.max_players, "ThreadCount": 0,
                   "InstanceId": instance, "SystemId": group["systems"][0],
                   "SystemIds": group["systems"], "InstanceEndpoint": endpoint,
-                  "RuntimeStatusFile": str(state / "status.json"), "DrainFlagFile": str(state / "drain.flag")}
+                  "RuntimeStatusFile": str(state / "status.json"), "DrainFlagFile": str(state / "drain.flag"),
+                  "FlHookCompatEnabled": False, "FlHookCompatDirectory": "flhook-plugins",
+                  "FlHookCompatPluginIds": [], "FlHookCompatApprovedCapabilities": []}
         if args.npc_transfer_port_base:
             server_certificate = transfer_cert_dir / f"{instance}.pfx"
             config.update({
@@ -177,6 +188,7 @@ def prepare(args):
         env = state_root / "private" / f"{instance}.env"
         with os.fdopen(os.open(env, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
             f.write(f"LANCER_NEXUS_GAME_INSTANCE_KEY={keys[instance]}\n")
+            f.write(f"LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT={redis_endpoint}\n")
             f.write(f"INSTANCE_ID={instance}\nSYSTEM_ID={config['SystemId']}\n")
             f.write(f"SYSTEM_IDS={','.join(group['systems'])}\n")
             f.write(f"PRIVATE_BIND_ADDRESS={address}\nGAME_UDP_PORT={port}\n")
@@ -246,6 +258,8 @@ def main():
     parser.add_argument("--coordinator", default="127.0.0.1:7443")
     parser.add_argument("--coordinator-http-url", help="Private Coordinator HTTP base URL; defaults to https://<QUIC-host>:8444")
     parser.add_argument("--coordinator-name", default="coordinator.internal.example")
+    parser.add_argument("--permission-redis-endpoint", default="127.0.0.1:6379",
+                        help="Private Redis endpoint used for permission revision invalidations")
     parser.add_argument("--npc-transfer-port-base", type=int, default=0,
                         help="Enable NPC mTLS/QUIC listeners on eight consecutive private ports")
     parser.add_argument("--npc-transfer-cert-dir", type=Path,

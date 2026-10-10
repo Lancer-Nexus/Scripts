@@ -11,5 +11,9 @@
   "RuntimeStatusFile": "/run/lancer-nexus/liberty-01.status.json",
   "InstanceId": "liberty-01",
   "SystemId": "li01",
-  "InstanceEndpoint": "10.20.0.31:2300"
+  "InstanceEndpoint": "10.20.0.31:2300",
+  "FlHookCompatEnabled": false,
+  "FlHookCompatDirectory": "flhook-plugins",
+  "FlHookCompatPluginIds": [],
+  "FlHookCompatApprovedCapabilities": []
 }

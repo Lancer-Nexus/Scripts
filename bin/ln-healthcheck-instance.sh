@@ -40,6 +40,8 @@ age=$((now_epoch - written_epoch))
 
 jq -e '
   (.IsReady == true) and
+  (.PermissionsReady == true) and
+  (.PermissionRevision >= 0) and
   (.CurrentPlayers >= 0) and
   (.MaxPlayers > 0) and
   (.CurrentPlayers <= .MaxPlayers) and

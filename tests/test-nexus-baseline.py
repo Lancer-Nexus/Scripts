@@ -47,6 +47,17 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(["ew06", "fp7", "intro", "miners"], mixed["assetDirectories"])
         self.assertEqual(["intro", "miners"], plan["nonWorldDirectories"])
 
+    def test_custom_permission_redis_endpoint_is_written_to_runtime_plan(self):
+        output = self.root / "custom-output"
+        state = self.root / "custom-state"
+        subprocess.run([sys.executable, str(SCRIPT), "--game", str(self.game), "--output", str(output),
+                        "--state-root", str(state), "--permission-redis-endpoint", "redis.internal:6380"],
+                       check=True, capture_output=True)
+        topology = json.loads((output / "topology.json").read_text())
+        self.assertEqual("redis.internal:6380", topology["permissionRedisEndpoint"])
+        self.assertIn("LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=redis.internal:6380",
+                      (state / "private" / "li-01.env").read_text())
+
     def test_missing_required_world_fails(self):
         universe = self.universe / "universe.INI"
         universe.write_text(universe.read_text().replace("nickname = br01", "nickname = renamed"))
@@ -68,6 +79,12 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(b"existing-character-state", database.read_bytes())
         topology = json.loads((output / "topology.json").read_text())
         self.assertEqual(8, len({g["port"] for g in topology["instances"]}))
+        self.assertEqual("127.0.0.1:6379", topology["permissionRedisEndpoint"])
+        generated_config = json.loads((output / "config" / "li-01.json").read_text())
+        self.assertFalse(generated_config["FlHookCompatEnabled"])
+        self.assertEqual([], generated_config["FlHookCompatPluginIds"])
+        self.assertIn("LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=127.0.0.1:6379",
+                      (state / "private" / "li-01.env").read_text())
         self.assertEqual(8, len(set(json.loads(before).values())))
         env = (state / "private" / "gateway-instances.env").read_text()
         self.assertIn("Gateway__GameInstanceKeysFile=", env)

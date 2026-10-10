@@ -44,6 +44,9 @@ def main():
         if stat.S_IMODE(secret_file.stat().st_mode) & 0o077:
             parser.error("Private instance key file must have mode 0600")
         environment["LANCER_NEXUS_GAME_INSTANCE_KEY"] = json.loads(secret_file.read_text())[args.instance]
+        endpoint = group.get("permissionRedisEndpoint")
+        if endpoint:
+            environment["LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT"] = endpoint
         instance_secrets = Path(plan["privateRoot"]) / "instance-secrets.env"
         if instance_secrets.is_file():
             if stat.S_IMODE(instance_secrets.stat().st_mode) & 0o077:
@@ -54,7 +57,8 @@ def main():
                 name, separator, value = line.partition("=")
                 if not separator or name not in {
                     "LANCER_NEXUS_COORDINATOR_API_KEY",
-                    "LANCER_NEXUS_NPC_TRANSFER_CERT_PASSWORD"
+                    "LANCER_NEXUS_NPC_TRANSFER_CERT_PASSWORD",
+                    "LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT"
                 }:
                     parser.error("Instance secret environment contains an unsupported entry")
                 environment[name] = value

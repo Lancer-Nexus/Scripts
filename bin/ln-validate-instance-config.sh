@@ -58,11 +58,18 @@ private_ip=$(env_value "$instance_env" PRIVATE_BIND_ADDRESS)
 game_port=$(env_value "$instance_env" GAME_UDP_PORT)
 player_limit=$(env_value "$instance_env" PUBLIC_PLAYER_LIMIT)
 status_file=$(env_value "$instance_env" LLSERVER_RUNTIME_STATUS_FILE)
-for required in instance_id system_id private_ip game_port player_limit status_file; do
+permission_redis=$(env_value "$instance_env" LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT)
+instance_key=$(env_value "$instance_env" LANCER_NEXUS_GAME_INSTANCE_KEY)
+for required in instance_id system_id private_ip game_port player_limit status_file permission_redis instance_key; do
   require_value "$required" "${!required}"
 done
 [[ "$game_port" =~ ^[0-9]+$ && "$game_port" -ge 1 && "$game_port" -le 65535 ]] || { echo "invalid GAME_UDP_PORT" >&2; exit 65; }
 [[ "$player_limit" =~ ^[0-9]+$ && "$player_limit" -gt 0 ]] || { echo "invalid PUBLIC_PLAYER_LIMIT" >&2; exit 65; }
+[[ "$permission_redis" =~ ^[^[:space:]]+:[0-9]+$ ]] || { echo "invalid LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT" >&2; exit 65; }
+redis_port=${permission_redis##*:}
+instance_key_bytes=$(printf '%s' "$instance_key" | wc -c)
+[[ "$instance_key_bytes" -ge 32 ]] || { echo "LANCER_NEXUS_GAME_INSTANCE_KEY must contain at least 32 UTF-8 bytes" >&2; exit 65; }
+[[ "$redis_port" -ge 1 && "$redis_port" -le 65535 ]] || { echo "invalid LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT port" >&2; exit 65; }
 endpoint="${private_ip}:${game_port}"
 
 jq -e --arg instance "$instance_id" \

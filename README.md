@@ -107,6 +107,10 @@ See [`config/README.md`](config/README.md) for per-project templates and [`docs/
 
 The eight-group Nexus base configuration, inventory generator, persistent-state layout and component starters are documented in [docs/nexus-baseline.md](docs/nexus-baseline.md). The canonical system allocation is [config/nexus-baseline.json](config/nexus-baseline.json).
 
+## Cluster LLServer build
+
+The workspace build keeps Cluster and FLHookCompat disabled by default. To compile their optional LLServer integrations while building the multi-repository workspace, set `LANCER_NEXUS_CLUSTER_SERVER_BUILD=true` for `scripts/build-all.sh`. For a distributable Client SDK or server-only release, use `Client/build.sh --nexus-cluster-server <target>` from the workspace; the Cluster and FLHookCompat sibling checkouts must be present. Neither option enables plugin execution. Each clustered instance also needs `LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=host:port`; readiness remains false until its permission snapshot is active and acknowledged.
+
 ## Agent systemd unit
 
 `systemd/lancer-nexus-agent.service` runs the existing outbound-only Agent worker as the unprivileged `lancer` user. It creates the persistent sequence directory `/var/lib/lancer-nexus-agent` and reads the host-local runtime directory `/run/lancer-nexus` used by the LLServer status snapshot. Install `tmpfiles.d/lancer-nexus.conf` before starting services so both units share that directory. The Agent unit does not start or stop game instances and does not open inbound ports.
@@ -125,6 +129,8 @@ sudo systemctl enable lancer-nexus-agent.service
 Starting the unit is intentionally a separate operator action. Certificate files and `agent.env` remain outside the release directory and must be readable by the `lancer` service account without putting private keys or passwords in Git.
 
 `systemd/lancer-nexus-instance@.service` is an operator-managed LLServer template. Enable an instance only after placing `/opt/lancer-nexus/current/client/LLServer`, `/opt/lancer-nexus/current/scripts/bin/ln-validate-instance-config.sh`, `/opt/lancer-nexus/current/scripts/bin/ln-wait-instance-ready.sh`, `/etc/lancer-nexus/instances/<id>.json`, `/etc/lancer-nexus/instances/<id>.env` and `/var/lib/lancer-nexus/instances/<id>/` in place. The unit runs the configuration preflight before every start; the JSON must set `RuntimeStatusFile` to the shared runtime directory and keep `InstanceEndpoint` private. This unit is not a remote Agent lifecycle implementation; it does not add a public listener or a Gateway relay.
+
+For instances prepared by `prepare-nexus-baseline.py`, install the generated `state-root/private/<instance>.env` as `/etc/lancer-nexus/instances/<instance>.env` with mode 0600. It contains the unique per-instance Gateway key and Redis endpoint; do not replace it with the blank-key example. The validator checks that the key has at least 32 bytes without printing it.
 
 After LLServer starts, the unit waits up to 90 seconds for the fresh runtime snapshot to pass `ln-healthcheck-instance.sh`. A server that never becomes ready is stopped by systemd and remains failed for operator diagnosis.
 

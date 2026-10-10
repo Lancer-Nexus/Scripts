@@ -5,6 +5,24 @@ test instances with Coordinator from their live LLServer status files. Source th
 run directory's private `coordinator.env` before starting it. It requires Python 3
 and uses the generated localhost CA; no additional packages are needed.
 
+This HTTP heartbeat reporter is a compatibility diagnostic and does not exercise
+the Agent QUIC/mTLS control path. For the real two-instance cluster run,
+`bin/prepare-first-client-e2e-agents.py --run-dir <run-directory>` enables
+Coordinator QUIC, provisions separate short-lived Agent identities, updates both
+LLServer configs for FLHook event publishing, and writes one Agent environment
+file per instance. The workspace `prepare-first-client-e2e.py` calls this helper
+after creating the isolated HTTP/GameServer configuration. Start the real
+Coordinator with the generated `coordinator.env`, then run one Agent process per
+`agent-control/*-agent.env`. Do not run the HTTP reporter at the same time; it
+publishes a legacy heartbeat identity outside those Agent sessions.
+
+The helper refuses an LLServer config whose instance/system pair differs from
+the expected LI01/li01 and LI02/li03 test topology. This catches accidental
+same-system duplicate registration before the live run. It stores private keys,
+PFX files and environment files under the mode-0700 test run directory and does
+not print credential values. Run directories must be private and located under
+`/tmp` or the workspace's ignored `output/dev` directory.
+
 The reporter publishes separate private NPC QUIC endpoints and explicit ports,
 using runtime status or legacy test configurations. Pass `--disable-npc-transfer`
 when the test servers have no QUIC receiver. On one host, assign each LLServer a

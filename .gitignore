@@ -7,4 +7,6 @@
 *.key
 *.crt
 *.cer
+__pycache__/
+*.py[cod]
 secrets/

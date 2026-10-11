@@ -2,9 +2,11 @@
 """Report Freelancer goods and market coverage against the Nexus system inventory."""
 
 import argparse
+from decimal import Decimal, InvalidOperation
 import json
 from pathlib import Path
 import re
+import struct
 import sys
 
 
@@ -166,6 +168,53 @@ def mission_created_bases(universe_ini):
             if section["name"] == "missioncreatedsolar" for value in values(section, "base")}
 
 
+def mbase_factions(data_path):
+    """Map base nicknames to the local faction and factions used by base NPCs."""
+    mbases_ini = safe_asset(data_path, "missions/mbases.ini")
+    sections = parse_ini(mbases_ini)
+    result = {}
+    duplicate_ids = []
+    for index, section in enumerate(sections):
+        if section["name"] != "mbase":
+            continue
+        nickname = one(section, "nickname", mbases_ini).lower()
+        end = next((i for i in range(index + 1, len(sections))
+                    if sections[i]["name"] == "mbase"), len(sections))
+        base_sections = sections[index:end]
+        local_faction = values(section, "local_faction")
+        faction_ids = sorted({value.lower() for faction in base_sections
+                              if faction["name"] == "basefaction"
+                              for value in values(faction, "faction") if value})
+        if nickname in result:
+            duplicate_ids.append(nickname)
+        else:
+            result[nickname] = {
+                "localFactionId": local_faction[0].lower() if len(local_faction) == 1 else None,
+                "baseFactionIds": faction_ids,
+            }
+    return result, sorted(set(duplicate_ids)), mbases_ini
+
+
+def legacy_good_price(good):
+    """Mirror Good.Price's current INI conversion to Int32 for report purposes."""
+    if not good["priceDeclared"]:
+        return 0
+    raw = good["price"].strip()
+    try:
+        value = int(raw, 10)
+        if -(2 ** 31) <= value < 2 ** 31:
+            return value
+        if 0 <= value < 2 ** 32:
+            return value - 2 ** 32 if value >= 2 ** 31 else value
+    except ValueError:
+        pass
+    try:
+        single = struct.unpack("f", struct.pack("f", float(raw)))[0]
+        return int(single)
+    except (ValueError, OverflowError):
+        return -1
+
+
 def add_good_catalog(paths):
     goods = {}
     duplicate_ids = []
@@ -178,8 +227,28 @@ def add_good_catalog(paths):
                 "goodId": nickname,
                 "category": (values(section, "category") or [""])[0].lower(),
                 "price": (values(section, "price") or [""])[0],
+                "priceDeclared": bool(values(section, "price")),
+                "hullGoodId": (values(section, "hull") or [""])[0].lower() or None,
+                "addons": [],
                 "source": path.name,
             }
+            for addon in values(section, "addon"):
+                parts = [part.strip() for part in addon.split(",")]
+                if len(parts) < 2 or not parts[0]:
+                    definition["addons"].append({"valid": False, "sourceValue": addon})
+                    continue
+                amount = 1
+                if len(parts) > 2:
+                    try:
+                        amount = int(parts[2])
+                    except ValueError:
+                        amount = None
+                definition["addons"].append({
+                    "equipmentId": parts[0].lower(),
+                    "hardpoint": parts[1],
+                    "amount": amount,
+                    "valid": amount is not None,
+                })
             if nickname in goods:
                 duplicate_ids.append(nickname)
             else:
@@ -209,7 +278,7 @@ def add_market_catalog(paths):
                     rank = int(fields[1])
                     rep = float(fields[2])
                     preserve = int(fields[5])
-                    multiplier = float(fields[6])
+                    multiplier = struct.unpack("f", struct.pack("f", float(fields[6])))[0]
                 except ValueError:
                     malformed.append(f"{path.name}:{section['line']}")
                     continue
@@ -222,13 +291,14 @@ def add_market_catalog(paths):
                     "forSale": maximum > 0,
                     "preserve": preserve > 0,
                     "multiplier": multiplier,
+                    "multiplierRaw": fields[6],
                     "source": path.name,
                 })
     return markets, entry_count, malformed
 
 
 def analyze(game, baseline_path):
-    _, goods_paths, market_paths, universe_ini = load_data_paths(game.resolve())
+    data_path, goods_paths, market_paths, universe_ini = load_data_paths(game.resolve())
     instance_by_system = baseline_systems(baseline_path)
     source_system_files = universe_system_files(universe_ini)
     universe_base_dirs = universe_base_directories(universe_ini)
@@ -238,6 +308,7 @@ def analyze(game, baseline_path):
 
     goods, duplicate_ids = add_good_catalog(goods_paths)
     markets, market_entry_count, malformed_entries = add_market_catalog(market_paths)
+    factions_by_base, duplicate_mbase_ids, mbases_ini = mbase_factions(data_path)
     unknown_goods = sorted({entry["goodId"] for market in markets.values() for entry in market["entries"]
                             if entry["goodId"] not in goods})
 
@@ -289,8 +360,66 @@ def analyze(game, baseline_path):
         })
 
     market_rows = []
+    unpriced_ship_packages = []
     for market_id, market in sorted(markets.items()):
         entries = market["entries"]
+        first_price_by_good = {}
+        for entry in entries:
+            good = goods.get(entry["goodId"])
+            if good and good["category"] == "ship":
+                entry["forSale"] = entry["min"] != 0 or entry["max"] != 0
+            price = good["price"] if good and good["priceDeclared"] else "0"
+            if good and good["category"] == "ship":
+                entry["baselineUnitPrice"] = None
+                entry["legacyRuntimeUnitPrice"] = None
+                entry["priceResolution"] = "ship_package"
+                continue
+            try:
+                entry["baselineUnitPrice"] = format(
+                    Decimal(price) * Decimal(entry["multiplierRaw"]), "f")
+            except (InvalidOperation, ValueError):
+                entry["baselineUnitPrice"] = None
+            parsed_price = legacy_good_price(good) if good else 0
+            entry["parsedGoodPrice"] = parsed_price
+            entry["legacyRuntimeUnitPrice"] = int(parsed_price * entry["multiplier"])
+            entry["priceResolution"] = (
+                "fractional_literal_truncated" if good and good["priceDeclared"]
+                and not good["price"].lstrip("+-").isdigit() else "integer_good_price")
+            if good and good["category"] in ("equipment", "commodity"):
+                first_price_by_good.setdefault(entry["goodId"], entry["legacyRuntimeUnitPrice"])
+        for entry in entries:
+            package = goods.get(entry["goodId"])
+            if not package or package["category"] != "ship":
+                continue
+            hull = goods.get(package["hullGoodId"] or "")
+            if hull is None:
+                unpriced_ship_packages.append({"marketId": market_id, "goodId": package["goodId"],
+                                               "reason": "missing_hull_or_hull_price"})
+                entry["legacyPackagePrice"] = None
+                continue
+            package_price = legacy_good_price(hull)
+            missing_addons = []
+            for addon in package["addons"]:
+                if not addon.get("valid"):
+                    missing_addons.append(addon.get("sourceValue", "invalid addon"))
+                    continue
+                addon_good = goods.get(addon["equipmentId"])
+                if addon_good is None:
+                    # Equipment without a Good has no fallback price in Base.GetUnitPrice.
+                    unit_price = 0
+                elif addon_good["category"] not in ("equipment", "commodity"):
+                    unit_price = 0
+                elif addon["equipmentId"] in first_price_by_good:
+                    unit_price = first_price_by_good[addon["equipmentId"]]
+                else:
+                    unit_price = legacy_good_price(addon_good)
+                package_price += unit_price * addon["amount"]
+            if missing_addons:
+                unpriced_ship_packages.append({"marketId": market_id, "goodId": package["goodId"],
+                                               "reason": "invalid_addon", "addons": missing_addons})
+                entry["legacyPackagePrice"] = None
+            else:
+                entry["legacyPackagePrice"] = package_price
         base = universe_base_dirs.get(market_id)
         asset_directory = base["assetDirectory"] if base else None
         systems = sorted(market_systems[market_id])
@@ -301,6 +430,8 @@ def analyze(game, baseline_path):
                         "unresolved")
         market_rows.append({
             "marketId": market_id,
+            "localFactionId": factions_by_base.get(market_id, {}).get("localFactionId"),
+            "baseFactionIds": factions_by_base.get(market_id, {}).get("baseFactionIds", []),
             "assetDirectory": asset_directory,
             "declaredSystemId": base["systemId"] if base else None,
             "mappingSource": ("universe_base_system" if base and base["systemId"] else
@@ -317,6 +448,27 @@ def analyze(game, baseline_path):
         })
 
     listed_goods = {entry["goodId"] for market in markets.values() for entry in market["entries"]}
+    ship_package_entry_count = sum(
+        1 for market in markets.values() for entry in market["entries"]
+        if goods.get(entry["goodId"], {}).get("category") == "ship")
+    entries_without_standalone_price = sum(
+        1 for market in markets.values() for entry in market["entries"]
+        if entry.get("baselineUnitPrice") is None)
+    entries_with_implicit_zero_price = sum(
+        1 for market in markets.values() for entry in market["entries"]
+        if (good := goods.get(entry["goodId"])) is not None
+        and not good["priceDeclared"] and good["category"] != "ship")
+    goods_with_fractional_price = sorted(
+        good_id for good_id, good in goods.items()
+        if good["priceDeclared"] and not good["price"].lstrip("+-").isdigit())
+    entries_with_fractional_price = sum(
+        1 for market in markets.values() for entry in market["entries"]
+        if entry.get("priceResolution") == "fractional_literal_truncated")
+    markets_missing_mbase = sorted(market_id for market_id, market in markets.items()
+                                   if market["entries"] and market_id not in factions_by_base)
+    markets_missing_local_faction = sorted(
+        market_id for market_id, market in markets.items()
+        if market["entries"] and not factions_by_base.get(market_id, {}).get("localFactionId"))
     goods_by_category = {}
     for definition in goods.values():
         category = definition["category"] or "unspecified"
@@ -344,11 +496,18 @@ def analyze(game, baseline_path):
             "marketFiles": [path.name for path in market_paths],
             "universeFile": universe_ini.name,
             "baselineFile": baseline_path.name,
+            "mbasesFile": mbases_ini.relative_to(data_path).as_posix(),
         },
         "summary": {
             "goodDefinitionCount": len(goods),
             "goodsByCategory": dict(sorted(goods_by_category.items())),
             "marketEntryCount": market_entry_count,
+            "shipPackageEntryCount": ship_package_entry_count,
+            "shipPackagePriceUnresolvedCount": len(unpriced_ship_packages),
+            "marketEntriesWithoutStandalonePriceCount": entries_without_standalone_price,
+            "marketEntriesWithImplicitZeroPriceCount": entries_with_implicit_zero_price,
+            "marketEntriesWithFractionalGoodPriceCount": entries_with_fractional_price,
+            "goodsWithFractionalPriceCount": len(goods_with_fractional_price),
             "uniqueMarketGoodCount": len(listed_goods),
             "uniqueBuyableGoodCount": len({entry["goodId"] for market in markets.values()
                                              for entry in market["entries"] if entry["forSale"]}),
@@ -370,7 +529,10 @@ def analyze(game, baseline_path):
             "nexusSystemsWithoutMarkets": len(instance_by_system) - len(canonical_market_systems),
             "unknownMarketGoodCount": len(unknown_goods),
             "duplicateGoodIdCount": len(duplicate_ids),
+            "duplicateMBaseIdCount": len(duplicate_mbase_ids),
             "malformedMarketEntryCount": len(malformed_entries),
+            "marketIdsMissingMBase": len(markets_missing_mbase),
+            "marketIdsMissingLocalFaction": len(markets_missing_local_faction),
             "unmappedMarketIdCount": len(unmapped_markets),
             "marketsOutsideNexusSystems": sum(
                 bool(market["entries"]) and bool(market_systems[market_id]) and
@@ -382,6 +544,11 @@ def analyze(game, baseline_path):
         "unlistedGoodIds": sorted(set(goods) - listed_goods),
         "unknownMarketGoodIds": unknown_goods,
         "duplicateGoodIds": duplicate_ids,
+        "goodsWithFractionalPrice": goods_with_fractional_price,
+        "duplicateMBaseIds": duplicate_mbase_ids,
+        "marketsMissingMBase": markets_missing_mbase,
+        "marketsMissingLocalFaction": markets_missing_local_faction,
+        "unpricedShipPackages": unpriced_ship_packages,
         "malformedMarketEntries": malformed_entries,
         "unmappedMarketIds": unmapped_markets,
         "marketsOutsideNexusSystems": sorted(
@@ -416,6 +583,8 @@ def main():
             sys.stdout.write(payload)
         if any(report["summary"][key] for key in (
                 "unknownMarketGoodCount", "duplicateGoodIdCount", "malformedMarketEntryCount",
+                "duplicateMBaseIdCount", "marketIdsMissingMBase", "marketIdsMissingLocalFaction",
+                "shipPackagePriceUnresolvedCount",
                 "unmappedMarketIdCount", "marketsOutsideNexusSystems", "unassignedUniverseSystemCount")):
             return 1
         return 0

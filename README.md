@@ -129,6 +129,17 @@ python3 bin/review-unlisted-market-goods.py \
 
 The review matrix distinguishes unlisted weapons, special equipment, other equipment, unlisted commodities, ship hulls already represented by a package, and package addons. It records the input report SHA-256 and leaves every non-package standalone trade policy disabled pending explicit review. This is classification evidence, not a market policy or an activation command.
 
+Collect source-reference evidence for each unlisted good without enabling it:
+
+```bash
+python3 bin/analyze-unlisted-market-usage.py \
+  ../Coordinator/docs/unlisted-market-goods-review.json \
+  --data-dir /path/to/Freelancer/DATA \
+  --output ../Coordinator/docs/unlisted-market-goods-usage.json
+```
+
+The usage report pins both the review matrix and the scanned text-file inventory. It counts exact whole-ID references outside `EQUIPMENT` definitions across INI, THN, LUA and TXT files, grouped by DATA subdirectory. A reference is evidence of use, not evidence that a good belongs in a player shop.
+
 ## Cluster LLServer build
 
 The workspace build keeps Cluster and FLHookCompat disabled by default. To compile their optional LLServer integrations while building the multi-repository workspace, set `LANCER_NEXUS_CLUSTER_SERVER_BUILD=true` for `scripts/build-all.sh`. For a distributable Client SDK or server-only release, use `Client/build.sh --nexus-cluster-server <target>` from the workspace; the Cluster and FLHookCompat sibling checkouts must be present. Neither option enables plugin execution. Each clustered instance also needs `LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=host:port`; readiness remains false until its permission snapshot is active and acknowledged.

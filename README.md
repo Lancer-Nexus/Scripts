@@ -107,6 +107,18 @@ See [`config/README.md`](config/README.md) for per-project templates and [`docs/
 
 The eight-group Nexus base configuration, inventory generator, persistent-state layout and component starters are documented in [docs/nexus-baseline.md](docs/nexus-baseline.md). The canonical system allocation is [config/nexus-baseline.json](config/nexus-baseline.json).
 
+## Freelancer market catalog report
+
+Generate a read-only JSON report for the goods and market files configured by the installed `EXE/Freelancer.ini`, mapped to the canonical Nexus systems:
+
+```bash
+python3 bin/analyze-market-catalog.py \
+  --game /path/to/Freelancer \
+  --output /tmp/market-catalog-coverage.json
+```
+
+The report lists every configured `Good`, each `BaseGood` market entry with its static price/availability fields, system-to-market mappings, unlisted goods and malformed or unresolved references. Base locations use the explicit `system` field in `universe.ini`; if it is absent, the report resolves the base asset directory through the universe's registered system files. `dock_with` and mission-created solar references are reported separately as reachability evidence. It reads `config/nexus-baseline.json` by default and never changes Freelancer data. Exit code 1 signals coverage issues in the report; exit code 2 means the source files could not be read or parsed.
+
 ## Cluster LLServer build
 
 The workspace build keeps Cluster and FLHookCompat disabled by default. To compile their optional LLServer integrations while building the multi-repository workspace, set `LANCER_NEXUS_CLUSTER_SERVER_BUILD=true` for `scripts/build-all.sh`. For a distributable Client SDK or server-only release, use `Client/build.sh --nexus-cluster-server <target>` from the workspace; the Cluster and FLHookCompat sibling checkouts must be present. Neither option enables plugin execution. Each clustered instance also needs `LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=host:port`; readiness remains false until its permission snapshot is active and acknowledged.

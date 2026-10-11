@@ -119,6 +119,16 @@ python3 bin/analyze-market-catalog.py \
 
 The report lists every configured `Good`, each `BaseGood` market entry with its static price/availability fields, the unrounded price product and `legacyRuntimeUnitPrice` (the current Client parses `Good.Price` as an integer, truncating fractional INI numbers, then multiplies by the single-precision market multiplier), local base faction and associated `BaseFaction` IDs from `MISSIONS/mbases.ini`, system-to-market mappings, unlisted goods and malformed or unresolved references. Goods without a declared price use the current Client default of zero and are counted separately. Ship-package rows include `legacyPackagePrice`, computed as the hull price plus the selected base's equipment prices for package addons, matching the current Client purchase path; their own `MarketGood.Multiplier` is not applied by that path. Availability mirrors Client behavior: `Max > 0` for regular goods and `Min != 0 || Max != 0` for ship packages. Base locations use the explicit `system` field in `universe.ini`; if it is absent, the report resolves the base asset directory through the universe's registered system files. `dock_with` and mission-created solar references are reported separately as reachability evidence. It reads `config/nexus-baseline.json` by default and never changes Freelancer data. Exit code 1 signals coverage issues in the report; exit code 2 means the source files could not be read or parsed.
 
+Create a report-pinned review matrix for catalog goods that have no static market entry:
+
+```bash
+python3 bin/review-unlisted-market-goods.py \
+  /tmp/market-catalog-coverage.json \
+  --output /tmp/unlisted-market-goods-review.json
+```
+
+The review matrix distinguishes unlisted weapons, special equipment, other equipment, unlisted commodities, ship hulls already represented by a package, and package addons. It records the input report SHA-256 and leaves every non-package standalone trade policy disabled pending explicit review. This is classification evidence, not a market policy or an activation command.
+
 ## Cluster LLServer build
 
 The workspace build keeps Cluster and FLHookCompat disabled by default. To compile their optional LLServer integrations while building the multi-repository workspace, set `LANCER_NEXUS_CLUSTER_SERVER_BUILD=true` for `scripts/build-all.sh`. For a distributable Client SDK or server-only release, use `Client/build.sh --nexus-cluster-server <target>` from the workspace; the Cluster and FLHookCompat sibling checkouts must be present. Neither option enables plugin execution. Each clustered instance also needs `LANCER_NEXUS_PERMISSION_REDIS_ENDPOINT=host:port`; readiness remains false until its permission snapshot is active and acknowledged.
